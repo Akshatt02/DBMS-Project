@@ -11,10 +11,18 @@ import Contests from './pages/Contests';
 import ContestDetails from './pages/ContestDetails';
 import Submit from './pages/Submit';
 import Profile from './pages/Profile';
+import Admin from './pages/Admin';
+import AdminCreateProblem from './pages/AdminCreateProblem';
+import AdminCreateContest from './pages/AdminCreateContest';
 import { getToken } from './auth';
+import { isAdmin } from './auth';
 
 const PrivateRoute = ({ children }) => {
   return getToken() ? children : <Navigate to="/login" />;
+};
+
+const AdminGuard = ({ children }) => {
+  return isAdmin() ? children : <Navigate to="/" />;
 };
 
 export default function App() {
@@ -37,6 +45,15 @@ export default function App() {
           } />
           <Route path="/profile" element={
             <PrivateRoute><Profile /></PrivateRoute>
+          } />
+          <Route path="/admin" element={
+            <AdminGuard><Admin /></AdminGuard>
+          } />
+          <Route path="/admin/create-problem" element={
+            <AdminGuard><AdminCreateProblem /></AdminGuard>
+          } />
+          <Route path="/admin/create-contest" element={
+            <AdminGuard><AdminCreateContest /></AdminGuard>
           } />
           <Route path="*" element={<div className="text-center p-8">Page not found</div>} />
         </Routes>

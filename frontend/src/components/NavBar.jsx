@@ -1,11 +1,12 @@
 // src/components/NavBar.jsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getToken, clearToken } from '../auth';
+import { getToken, clearToken, isAdmin } from '../auth';
 
 const NavBar = () => {
   const navigate = useNavigate();
   const token = getToken();
+  const admin = isAdmin();
 
   const logout = () => {
     clearToken();
@@ -23,6 +24,7 @@ const NavBar = () => {
         <div>
           {token ? (
             <>
+              {admin && <Link to="/admin" className="mr-3 text-sm text-gray-600 hover:text-indigo-600">Admin</Link>}
               <Link to="/profile" className="mr-3 text-sm text-gray-600 hover:text-indigo-600">Profile</Link>
               <button onClick={logout} className="bg-indigo-600 text-white text-sm px-3 py-1 rounded">Logout</button>
             </>

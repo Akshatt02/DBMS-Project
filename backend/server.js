@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { pool } from './db/connection.js';
+import bcrypt from 'bcryptjs';
 
 import { userRouter } from './routes/userRoutes.js';
 import { problemRouter } from './routes/problemRoutes.js';
@@ -20,6 +21,21 @@ app.use(express.json());
     await conn.ping();
     conn.release();
     console.log('Connected to MySQL Database!');
+    try {
+      const adminUser = process.env.ADMIN_USERNAME;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      const [rows] = await pool.execute('SELECT user_id FROM users WHERE username = ? OR email = ? LIMIT 1', [adminUser, adminEmail]);
+      if (!rows.length) {
+        const hashed = await bcrypt.hash(adminPassword, 10);
+        await pool.execute('INSERT INTO users (username, email, password, institution, rating, is_admin) VALUES (?, ?, ?, ?, ?, ?)', [adminUser, adminEmail, hashed, process.env.ADMIN_INSTITUTION || null, 2000, 1]);
+        console.log('Admin user created:', adminUser);
+      } else {
+        console.log('Admin user already exists');
+      }
+    } catch (err) {
+      console.error('Failed to ensure admin user exists:', err.message);
+    }
   } catch (err) {
     console.error('MySQL connection failed:', err.message);
   }

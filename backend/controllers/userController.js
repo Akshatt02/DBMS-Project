@@ -48,7 +48,7 @@ export const login = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
     try {
-        const [rows] = await pool.execute('SELECT user_id, username, email, institution, rating, total_submissions, created_at FROM users');
+        const [rows] = await pool.execute('SELECT user_id, username, email, institution, rating, total_submissions, is_admin, created_at FROM users');
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -59,7 +59,7 @@ export const getAllUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
     try {
         const id = req.params.id;
-        const [rows] = await pool.execute('SELECT user_id, username, email, institution, bio, preferred_languages, rating, total_submissions, created_at FROM users WHERE user_id = ?', [id]);
+        const [rows] = await pool.execute('SELECT user_id, username, email, institution, bio, preferred_languages, rating, total_submissions, is_admin, created_at FROM users WHERE user_id = ?', [id]);
         if (!rows.length) return res.status(404).json({ message: 'User not found' });
         res.json(rows[0]);
     } catch (err) {
@@ -127,6 +127,7 @@ export const getProfile = async (req, res) => {
             solved_count,
             accuracy: Number(accuracy.toFixed(2)),
             rank,
+            is_admin: user.is_admin || 0,
             created_at: user.created_at
         });
     } catch (err) {

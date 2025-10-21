@@ -1,37 +1,30 @@
 // src/components/NavBar.jsx
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { getToken, clearToken, isAdmin } from '../auth';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const NavBar = () => {
-  const navigate = useNavigate();
-  const token = getToken();
-  const admin = isAdmin();
-
-  const logout = () => {
-    clearToken();
-    navigate('/login');
-  };
+  const { isLoggedIn, isAdmin, logout } = useAuth();
 
   return (
-    <nav className="bg-white shadow">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-xl font-bold text-indigo-600">CodeArena</Link>
-          <Link to="/problems" className="text-sm text-gray-600 hover:text-indigo-600">Problems</Link>
-          <Link to="/contests" className="text-sm text-gray-600 hover:text-indigo-600">Contests</Link>
+    <nav className="bg-gradient-to-r from-gray-900 via-slate-900 to-gray-800 text-white shadow-md">
+      <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-2xl font-bold tracking-tight text-teal-300">CodeArena</Link>
+          <Link to="/problems" className="text-sm text-slate-200 hover:text-white">Problems</Link>
+          <Link to="/contests" className="text-sm text-slate-200 hover:text-white">Contests</Link>
         </div>
-        <div>
-          {token ? (
+
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
             <>
-              {admin && <Link to="/admin" className="mr-3 text-sm text-gray-600 hover:text-indigo-600">Admin</Link>}
-              <Link to="/profile" className="mr-3 text-sm text-gray-600 hover:text-indigo-600">Profile</Link>
-              <button onClick={logout} className="bg-indigo-600 text-white text-sm px-3 py-1 rounded">Logout</button>
+              <Link to="/profile" className="text-sm text-slate-200 hover:text-white mr-3">Profile</Link>
+              <button onClick={logout} className="text-sm bg-teal-500 hover:bg-teal-400 text-white px-3 py-1 rounded">Logout</button>
             </>
           ) : (
             <>
-              <Link to="/login" className="mr-3 text-sm text-gray-600 hover:text-indigo-600">Login</Link>
-              <Link to="/register" className="bg-indigo-600 text-white text-sm px-3 py-1 rounded">Register</Link>
+              <Link to="/login" className="text-sm text-slate-200 hover:text-white mr-3">Login</Link>
+              <Link to="/register" className="text-sm bg-teal-500 hover:bg-teal-400 text-white px-3 py-1 rounded">Register</Link>
             </>
           )}
         </div>

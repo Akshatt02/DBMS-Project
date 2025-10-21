@@ -1,6 +1,7 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from 'react';
-import { api } from '../api';
+import { api } from '../apiClient';
+import Spinner from '../components/Spinner';
 import { getToken } from '../auth';
 
 export default function Profile() {
@@ -34,29 +35,30 @@ export default function Profile() {
 
   if (loading) return <div>Loading...</div>;
   if (!profile) return <div>No profile</div>;
-
   return (
-    <div className="max-w-2xl bg-white p-6 rounded shadow">
-      <h2 className="text-2xl mb-3">{profile.username}</h2>
-      <div className="mb-3">Rating: <strong>{profile.rating}</strong> • Rank: <strong>{profile.rank}</strong></div>
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="text-sm text-gray-600">Institution</label>
-          <input value={institution} onChange={e => setInstitution(e.target.value)} className="w-full border p-2 rounded" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-600">Bio</label>
-          <input value={bio} onChange={e => setBio(e.target.value)} className="w-full border p-2 rounded" />
-        </div>
-      </div>
-      <div className="mb-4">
-        <div>Accepted: <strong>{profile.accepted_count}</strong> • Solved: <strong>{profile.solved_count}</strong> • Accuracy: <strong>{profile.accuracy}%</strong></div>
-      </div>
-      <button className="bg-indigo-600 text-white px-4 py-2 rounded" onClick={save}>Save</button>
+    <div className="site-wrap">
+      <div className="site-container">
+        <div className="card max-w-2xl">
+          <h2 className="text-2xl mb-3">{profile.username}</h2>
+          <div className="mb-3 muted">Rating: <strong>{profile.rating}</strong> • Rank: <strong>{profile.rank}</strong></div>
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm muted">Institution</label>
+              <input value={institution} onChange={e => setInstitution(e.target.value)} className="w-full border p-2 rounded" />
+            </div>
+            <div>
+              <label className="text-sm muted">Bio</label>
+              <input value={bio} onChange={e => setBio(e.target.value)} className="w-full border p-2 rounded" />
+            </div>
+          </div>
+          <div className="mb-4 muted">Accepted: <strong>{profile.accepted_count}</strong> • Solved: <strong>{profile.solved_count}</strong> • Accuracy: <strong>{profile.accuracy}%</strong></div>
+          <button className="btn btn-primary" onClick={save}>Save</button>
 
-      <div className="mt-6">
-        <h3 className="font-semibold">Topic-wise performance</h3>
-        <TopicPerformance userId={profile.user_id} />
+          <div className="mt-6">
+            <h3 className="font-semibold">Topic-wise performance</h3>
+            <TopicPerformance userId={profile.user_id} />
+          </div>
+        </div>
       </div>
     </div>
   );

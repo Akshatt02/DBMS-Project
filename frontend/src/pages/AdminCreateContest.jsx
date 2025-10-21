@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api } from '../api';
+import { api } from '../apiClient';
 import { getToken } from '../auth';
 
 export default function AdminCreateContest() {
@@ -22,16 +22,20 @@ export default function AdminCreateContest() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-2xl mb-4">Create Contest</h2>
-      {msg && <div className="mb-3">{msg}</div>}
-      <form onSubmit={submit} className="space-y-3">
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Contest name" className="w-full border p-2 rounded" />
-        <input value={start} onChange={e=>setStart(e.target.value)} placeholder="Start time (YYYY-MM-DD HH:mm:ss)" className="w-full border p-2 rounded" />
-        <input value={end} onChange={e=>setEnd(e.target.value)} placeholder="End time (YYYY-MM-DD HH:mm:ss)" className="w-full border p-2 rounded" />
-        <textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description" className="w-full border p-2 rounded" />
-        <button className="w-full bg-indigo-600 text-white py-2 rounded">Create</button>
-      </form>
+    <div className="site-wrap">
+      <div className="site-container">
+        <div className="card max-w-2xl mx-auto">
+          <h2 className="text-2xl mb-4">Create Contest</h2>
+          {msg && <div className="mb-3 muted">{msg}</div>}
+          <form onSubmit={submit} className="space-y-3">
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Contest name" className="w-full border p-2 rounded" />
+            <input value={start} onChange={e=>setStart(e.target.value)} placeholder="Start time (YYYY-MM-DD HH:mm:ss)" className="w-full border p-2 rounded" />
+            <input value={end} onChange={e=>setEnd(e.target.value)} placeholder="End time (YYYY-MM-DD HH:mm:ss)" className="w-full border p-2 rounded" />
+            <textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description" className="w-full border p-2 rounded" />
+            <button className="w-full btn btn-primary">Create</button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

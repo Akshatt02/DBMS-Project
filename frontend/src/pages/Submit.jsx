@@ -1,6 +1,6 @@
 // src/pages/Submit.jsx
 import React, { useState } from 'react';
-import { api } from '../api';
+import { api } from '../apiClient';
 import { getToken } from '../auth';
 
 export default function Submit() {
@@ -22,24 +22,28 @@ export default function Submit() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-2xl mb-4">Submit Solution</h2>
-      {message && <div className="mb-3 text-sm">{message}</div>}
-      <form onSubmit={submit} className="space-y-3">
-        <input value={problemId} onChange={e=>setProblemId(e.target.value)} placeholder="Problem ID" className="w-full border p-2 rounded" />
-        <select value={language} onChange={e=>setLanguage(e.target.value)} className="w-full border p-2 rounded">
-          <option value="cpp">C++</option>
-          <option value="python">Python</option>
-          <option value="java">Java</option>
-        </select>
-        <select value={verdict} onChange={e=>setVerdict(e.target.value)} className="w-full border p-2 rounded">
-          <option>Accepted</option>
-          <option>Wrong Answer</option>
-          <option>TLE</option>
-          <option>Runtime Error</option>
-        </select>
-        <button className="w-full bg-indigo-600 text-white py-2 rounded">Submit</button>
-      </form>
+    <div className="site-wrap">
+      <div className="site-container">
+        <div className="card max-w-md mx-auto">
+          <h2 className="text-2xl mb-4">Submit Solution</h2>
+          {message && <div className="mb-3 text-sm muted">{message}</div>}
+          <form onSubmit={submit} className="space-y-3">
+            <input value={problemId} onChange={e=>setProblemId(e.target.value)} placeholder="Problem ID" className="w-full border p-2 rounded" />
+            <select value={language} onChange={e=>setLanguage(e.target.value)} className="w-full border p-2 rounded">
+              <option value="cpp">C++</option>
+              <option value="python">Python</option>
+              <option value="java">Java</option>
+            </select>
+            <select value={verdict} onChange={e=>setVerdict(e.target.value)} className="w-full border p-2 rounded">
+              <option>Accepted</option>
+              <option>Wrong Answer</option>
+              <option>TLE</option>
+              <option>Runtime Error</option>
+            </select>
+            <button className="w-full btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

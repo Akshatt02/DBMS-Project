@@ -1,7 +1,7 @@
 // src/pages/ContestDetails.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api } from '../api';
+import { api } from '../apiClient';
 import { getToken } from '../auth';
 
 export default function ContestDetails() {
@@ -42,40 +42,42 @@ export default function ContestDetails() {
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-3">Contest</h2>
-      {contest && (
-        <div className="bg-white p-4 rounded mb-4">
-          <div className="font-bold">{contest.contest_name}</div>
-          <div className="text-sm text-gray-500">{new Date(contest.start_time).toLocaleString()} — {new Date(contest.end_time).toLocaleString()}</div>
-          <div className="mt-2">{contest.description}</div>
-          <div className="mt-3">
-            <button onClick={register} className="bg-indigo-600 text-white px-3 py-1 rounded">Register</button>
-          </div>
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Problems</h3>
-          {problems.map(p => (
-            <div key={p.problem_id} className="py-2 border-b">
-              <div className="font-medium text-indigo-600">{p.title}</div>
-              <div className="text-sm text-gray-500">{p.difficulty} • {p.tags}</div>
+    <div className="site-wrap">
+      <div className="site-container">
+        <h2 className="text-2xl font-semibold mb-3">Contest</h2>
+        {contest && (
+          <div className="card mb-4">
+            <div className="font-bold accent">{contest.contest_name}</div>
+            <div className="muted">{new Date(contest.start_time).toLocaleString()} — {new Date(contest.end_time).toLocaleString()}</div>
+            <div className="mt-2 muted">{contest.description}</div>
+            <div className="mt-3">
+              <button onClick={register} className="btn btn-primary">Register</button>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Leaderboard</h3>
-          <ol className="list-decimal pl-5">
-            {leaderboard.map(row => (
-              <li key={row.user_id} className="py-1">
-                {row.username} — {row.solved} solved
-              </li>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="card">
+            <h3 className="font-semibold mb-2">Problems</h3>
+            {problems.map(p => (
+              <div key={p.problem_id} className="py-2 border-b">
+                <div className="font-medium accent">{p.title}</div>
+                <div className="muted">{p.difficulty} • {p.tags}</div>
+              </div>
             ))}
-            {leaderboard.length === 0 && <div className="text-gray-500">No entries</div>}
-          </ol>
+          </div>
+
+          <div className="card">
+            <h3 className="font-semibold mb-2">Leaderboard</h3>
+            <ol className="list-decimal pl-5">
+              {leaderboard.map(row => (
+                <li key={row.user_id} className="py-1">
+                  {row.username} — {row.solved} solved
+                </li>
+              ))}
+              {leaderboard.length === 0 && <div className="muted">No entries</div>}
+            </ol>
+          </div>
         </div>
       </div>
     </div>

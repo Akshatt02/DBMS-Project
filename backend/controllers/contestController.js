@@ -63,8 +63,8 @@ export const registerParticipant = async (req, res) => {
   try {
     const contest_id = req.params.id;
     const user_id = req.user.user_id;
-    await pool.execute('INSERT INTO contest_participants (contest_id, user_id) VALUES (?, ?)', [contest_id, user_id]);
-    res.json({ message: 'Registered for contest' });
+    const [result] = await pool.execute('INSERT INTO contest_participants (contest_id, user_id) VALUES (?, ?)', [contest_id, user_id]);
+    res.json({ message: 'Registered for contest', participant_id: result.insertId });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'Already registered' });
     console.error(err);
@@ -75,17 +75,22 @@ export const registerParticipant = async (req, res) => {
 export const getLeaderboard = async (req, res) => {
   try {
     const contest_id = req.params.id;
+    // compute leaderboard with solved count and total penalty (assumes submissions have submitted_at)
     const sql = `
-      SELECT u.user_id, u.username, COUNT(DISTINCT s.problem_id) AS solved
+      SELECT u.user_id, u.username,
+        COUNT(DISTINCT s.problem_id) AS solved,
+        SUM(CASE WHEN s.verdict = 'Accepted' THEN 0 ELSE 0 END) AS dummy,
+        COALESCE(SUM(CASE WHEN s.verdict = 'Accepted' THEN TIMESTAMPDIFF(SECOND, c.start_time, s.submitted_at) ELSE 0 END), 0) AS total_time_seconds
       FROM users u
-      LEFT JOIN submissions s ON u.user_id = s.user_id AND s.contest_id = ? AND s.verdict = 'Accepted'
+      LEFT JOIN submissions s ON u.user_id = s.user_id AND s.contest_id = ?
       JOIN contest_participants cp ON cp.user_id = u.user_id AND cp.contest_id = ?
+      JOIN contests c ON c.contest_id = ?
       GROUP BY u.user_id
-      ORDER BY solved DESC
+      ORDER BY solved DESC, total_time_seconds ASC
       LIMIT 100;
     `;
-    const [rows] = await pool.execute(sql, [contest_id, contest_id]);
-    res.json(rows);
+    const [rows] = await pool.execute(sql, [contest_id, contest_id, contest_id]);
+    res.json(rows.map(r => ({ ...r, total_time_seconds: Number(r.total_time_seconds) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to get leaderboard' });

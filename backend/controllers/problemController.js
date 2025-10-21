@@ -31,6 +31,7 @@ export const getProblems = async (req, res) => {
         }
         if (sortBy === 'popularity') sql += ' ORDER BY total_submissions DESC';
         else if (sortBy === 'accuracy') sql += ' ORDER BY (total_ac/NULLIF(total_submissions,0)) DESC';
+        else if (sortBy === 'difficulty_asc') sql += " ORDER BY CASE difficulty WHEN 'Easy' THEN 1 WHEN 'Medium' THEN 2 WHEN 'Hard' THEN 3 ELSE 4 END ASC";
         else sql += ' ORDER BY created_at DESC';
         const [rows] = await pool.execute(sql, params);
         res.json(rows);

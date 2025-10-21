@@ -111,8 +111,8 @@ export const getProfile = async (req, res) => {
         const total = user.total_submissions || 0;
         const accuracy = total > 0 ? (accepted_count / total) * 100 : 0;
 
-        const [rankRows] = await pool.execute('SELECT COUNT(*) + 1 AS rank FROM users WHERE rating > ?', [user.rating]);
-        const rank = rankRows[0].rank || 1;
+    const [rankRows] = await pool.execute('SELECT COUNT(*) + 1 AS `user_rank` FROM users WHERE rating > ?', [user.rating]);
+    const rank = rankRows[0]?.user_rank || 1;
 
         res.json({
             user_id: user.user_id,

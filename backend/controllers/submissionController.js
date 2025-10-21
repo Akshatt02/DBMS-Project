@@ -34,7 +34,16 @@ export const getSubmissionsByUser = async (req, res) => {
         if (Number(req.user.user_id) !== Number(userId) && !req.user.is_admin) {
             return res.status(403).json({ message: 'Forbidden' });
         }
-        const [rows] = await pool.execute('SELECT * FROM submissions WHERE user_id = ? ORDER BY submitted_at DESC', [userId]);
+        // allow optional filtering by verdict (e.g., ?verdict=Accepted)
+        const { verdict } = req.query;
+        let sql = 'SELECT * FROM submissions WHERE user_id = ?';
+        const params = [userId];
+        if (verdict) {
+            sql += ' AND verdict = ?';
+            params.push(verdict);
+        }
+        sql += ' ORDER BY submitted_at DESC';
+        const [rows] = await pool.execute(sql, params);
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -45,7 +54,16 @@ export const getSubmissionsByUser = async (req, res) => {
 export const getSubmissionsByProblem = async (req, res) => {
     try {
         const problemId = req.params.problemId;
-        const [rows] = await pool.execute('SELECT s.*, u.username FROM submissions s LEFT JOIN users u ON s.user_id = u.user_id WHERE problem_id = ? ORDER BY submitted_at DESC', [problemId]);
+        // allow optional filtering by verdict
+        const { verdict } = req.query;
+        let sql = 'SELECT s.*, u.username FROM submissions s LEFT JOIN users u ON s.user_id = u.user_id WHERE problem_id = ?';
+        const params = [problemId];
+        if (verdict) {
+            sql += ' AND s.verdict = ?';
+            params.push(verdict);
+        }
+        sql += ' ORDER BY submitted_at DESC';
+        const [rows] = await pool.execute(sql, params);
         res.json(rows);
     } catch (err) {
         console.error(err);

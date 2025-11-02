@@ -18,6 +18,14 @@ export const createSubmission = async (req, res) => {
             if (now < start || now > end) {
                 return res.status(403).json({ message: 'Submissions allowed only during contest window' });
             }
+            // ensure user is registered for the contest before allowing submissions
+            const [regRows] = await pool.query(
+                'SELECT 1 FROM contest_participants WHERE contest_id = ? AND user_id = ? LIMIT 1',
+                [contest_id, userId]
+            );
+            if (!regRows || regRows.length === 0) {
+                return res.status(403).json({ message: 'User not registered for contest' });
+            }
         }
 
         // Insert submission
@@ -28,13 +36,7 @@ export const createSubmission = async (req, res) => {
 
         const insertId = result.insertId;
 
-        if (contest_id) {
-            await pool.query(
-                `INSERT IGNORE INTO contest_participants (contest_id, user_id, rating_before)
-         VALUES (?, ?, (SELECT rating FROM users WHERE id = ?))`,
-                [contest_id, userId, userId]
-            );
-        }
+        // do not auto-register users on submission — registration is required beforehand
 
         // Fetch newly created submission to return
         const [[submission]] = await pool.query(

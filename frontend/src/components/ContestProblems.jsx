@@ -4,7 +4,7 @@ import AuthContext from '../context/AuthContext';
 
 const VERDICTS = ['AC', 'WA', 'TLE', 'RE', 'CE'];
 
-export default function ContestProblems({ contestId, onSubmit }) {
+export default function ContestProblems({ contestId, onSubmit, registered }) {
   const { token, user } = useContext(AuthContext);
   const [contest, setContest] = useState(null);
   const [problems, setProblems] = useState([]);
@@ -25,7 +25,6 @@ export default function ContestProblems({ contestId, onSubmit }) {
         setProblems(data.problems || []);
         setFiltered(data.problems || []);
 
-        // initialize verdict dropdowns
         const init = {};
         (data.problems || []).forEach(p => (init[p.id] = VERDICTS[0]));
         setSelected(init);
@@ -39,7 +38,6 @@ export default function ContestProblems({ contestId, onSubmit }) {
   }, [contestId, token]);
 
   useEffect(() => {
-    // 🔍 Simple case-insensitive name filter
     const s = search.trim().toLowerCase();
     if (!s) setFiltered(problems);
     else setFiltered(problems.filter(p => p.title.toLowerCase().includes(s)));
@@ -61,6 +59,7 @@ export default function ContestProblems({ contestId, onSubmit }) {
   const submit = async (p) => {
     if (!token) return setError('You must be logged in to submit');
     if (!canSubmit) return setError('Submissions are allowed only while contest is running');
+    if (!registered) return setError('You must register for the contest to submit solutions');
 
     const verdict = selected[p.id] || VERDICTS[0];
     setBusy(prev => ({ ...prev, [p.id]: true }));
@@ -74,7 +73,7 @@ export default function ContestProblems({ contestId, onSubmit }) {
         verdict
       });
       if (typeof onSubmit === 'function') onSubmit();
-      setMsg(`✅ Submission saved: ${p.title} — ${verdict}`);
+      setMsg(`Submission saved: ${p.title} — ${verdict}`);
     } catch (err) {
       console.error(err);
       setError(err?.message || 'Submission failed');
@@ -138,7 +137,7 @@ export default function ContestProblems({ contestId, onSubmit }) {
               <button
                 className="btn btn-primary"
                 onClick={() => submit(p)}
-                disabled={!canSubmit || busy[p.id]}
+                disabled={!canSubmit || busy[p.id] || !registered}
               >
                 {busy[p.id] ? 'Submitting...' : 'Submit'}
               </button>

@@ -106,6 +106,15 @@ export const fetchContestProblems = async (contestId, token) => {
   return data;
 };
 
+export const fetchContestById = async (contestId, token) => {
+  const res = await fetch(`${BASE}/api/contests/${contestId}`, {
+    headers: { Authorization: token ? `Bearer ${token}` : '' }
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
 export const fetchContestParticipants = async (token, contestId) => {
   const res = await fetch(`${BASE}/api/contests/${contestId}/participants`, {
     headers: { Authorization: token ? `Bearer ${token}` : '' }
@@ -136,6 +145,7 @@ export default {
   fetchContestSubmissions,
   fetchContestLeaderboard,
   fetchContestProblems,
+  fetchContestById,
   fetchContestParticipants,
   registerForContest,
 };

@@ -24,9 +24,8 @@ export default function ContestDetail() {
   useEffect(() => {
     const loadContest = async () => {
       try {
-        const data = await api.fetchContestProblems(id, token);
-        console.log('Fetched contest data:', data);
-        setContest(data.contest);
+        const data = await api.fetchContestById(id, token);
+        setContest(data.contest || data);
       } catch (err) {
         console.error('Error loading contest:', err);
         setError('Failed to load contest');
@@ -168,7 +167,7 @@ export default function ContestDetail() {
               Contest hasn’t started yet. Problems will be visible once it begins.
             </div>
           ) : (
-            <ContestProblems contestId={id} />
+            <ContestProblems contestId={id} registered={registered} />
           )}
         </div>
       )}

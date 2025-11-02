@@ -1,49 +1,53 @@
-// src/pages/Contests.jsx
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../apiClient';
+import React, { useEffect, useState, useContext } from 'react';
+import api from '../api';
+import AuthContext from '../context/AuthContext';
 
 export default function Contests() {
+  const { token } = useContext(AuthContext);
   const [contests, setContests] = useState([]);
-  const [status, setStatus] = useState('');
 
-  const fetch = async () => {
-    const params = new URLSearchParams();
-    if (status) params.append('status', status);
-    const rows = await api(`/contests?${params.toString()}`);
-    setContests(rows);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await api.fetchContests(token);
+        if (Array.isArray(data)) setContests(data);
+        else console.warn('Unexpected response format:', data);
+      } catch (e) {
+        console.error('Failed to load contests:', e);
+      }
+    };
+    if (token) load();
+  }, [token]);
+
+
+  const now = new Date();
+
+  const categorize = (contest) => {
+    const start = new Date(contest.start_time);
+    const end = new Date(contest.end_time);
+    if (now < start) return 'Upcoming';
+    if (now > end) return 'Past';
+    return 'Ongoing';
   };
 
-  useEffect(() => { fetch(); }, []);
-
   return (
-    <div className="site-wrap">
-      <div className="site-container">
-        <h2 className="text-2xl font-semibold mb-4">Contests</h2>
-        <div className="mb-4 flex gap-2">
-          <select value={status} onChange={e=>setStatus(e.target.value)} className="border p-2 rounded">
-            <option value="">All</option>
-            <option value="ongoing">Ongoing</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="past">Past</option>
-          </select>
-          <button onClick={fetch} className="btn btn-primary">Apply</button>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Contests</h1>
+      {contests.length === 0 && <div>No contests found</div>}
+      {contests.map(c => (
+        <div key={c.id} className="card">
+          <h2 className="text-xl">{c.title}</h2>
+          <div className="text-sm text-gray-400">
+            {c.department_name ? `${c.department_name} Department` : 'College-wide'}
+          </div>
+          <div className="mt-1">
+            {new Date(c.start_time).toLocaleString()} → {new Date(c.end_time).toLocaleString()}
+          </div>
+          <div className="mt-2">
+            <span className="badge">{categorize(c)}</span>
+          </div>
         </div>
-
-        <div className="space-y-3">
-          {contests.map(c => (
-            <div key={c.contest_id} className="card flex justify-between items-center">
-              <div>
-                <div className="font-semibold accent">{c.contest_name}</div>
-                <div className="muted">{new Date(c.start_time).toLocaleString()} — {new Date(c.end_time).toLocaleString()}</div>
-              </div>
-              <div>
-                <Link to={`/contests/${c.contest_id}`} className="btn btn-primary">Open</Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

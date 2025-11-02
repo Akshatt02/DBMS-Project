@@ -1,92 +1,65 @@
-// src/pages/Profile.jsx
-import React, { useEffect, useState } from 'react';
-import { api } from '../apiClient';
-import Spinner from '../components/Spinner';
-import { getToken } from '../auth';
+import React, { useEffect, useState, useContext } from 'react';
+import api from '../api';
+import AuthContext from '../context/AuthContext';
 
 export default function Profile() {
+  const { token } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [institution, setInstitution] = useState('');
-  const [bio, setBio] = useState('');
+  const [error, setError] = useState(null);
 
-  const load = async () => {
-    try {
-      const token = getToken();
-      const p = await api('/users/me', { token });
-      setProfile(p);
-      setInstitution(p.institution || '');
-      setBio(p.bio || '');
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await api.fetchProfile(token);
+        setProfile(data);
+      } catch (err) {
+        setError(err?.message || 'Failed to load profile');
+      }
+    };
+    if (token) load();
+  }, [token]);
 
-  useEffect(() => { load(); }, []);
+  if (error) return <div className="text-red-400">{error}</div>;
+  if (!profile) return <div>Loading...</div>;
 
-  const save = async () => {
-    const token = getToken();
-    await api(`/users/${profile.user_id}`, { method: 'PUT', token, body: { institution, bio } });
-    alert('Saved');
-    load();
-  };
+  const { user, stats, weak_topics } = profile;
 
-  if (loading) return <div>Loading...</div>;
-  if (!profile) return <div>No profile</div>;
   return (
-    <div className="site-wrap">
-      <div className="site-container">
-        <div className="card max-w-2xl">
-          <h2 className="text-2xl mb-3">{profile.username}</h2>
-          <div className="mb-3 muted">Rating: <strong>{profile.rating}</strong> • Rank: <strong>{profile.rank}</strong></div>
-          <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm muted">Institution</label>
-              <input value={institution} onChange={e => setInstitution(e.target.value)} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="text-sm muted">Bio</label>
-              <input value={bio} onChange={e => setBio(e.target.value)} className="w-full border p-2 rounded" />
-            </div>
-          </div>
-          <div className="mb-4 muted">Accepted: <strong>{profile.accepted_count}</strong> • Solved: <strong>{profile.solved_count}</strong> • Accuracy: <strong>{profile.accuracy}%</strong></div>
-          <button className="btn btn-primary" onClick={save}>Save</button>
-
-          <div className="mt-6">
-            <h3 className="font-semibold">Topic-wise performance</h3>
-            <TopicPerformance userId={profile.user_id} />
-          </div>
+    <div className="space-y-6">
+      <div className="card">
+        <h2 className="text-2xl font-bold">{user.name}</h2>
+        <p className="text-gray-400">
+          {user.department || 'General'} • Batch {user.batch || '-'}
+        </p>
+        <div className="mt-2">
+          <span className="badge bg-yellow-400 text-black">
+            Rating: {user.rating}
+          </span>
+          <span className="ml-3 badge">
+            Role: {user.role}
+          </span>
         </div>
       </div>
-    </div>
-  );
-}
 
-function TopicPerformance({ userId }) {
-  const [data, setData] = useState([]);
-  useEffect(() => {
-    (async () => {
-      try {
-        const token = getToken();
-        const res = await api(`/analytics/topic-performance/${userId}`, { token });
-        setData(res.topic_performance || []);
-      } catch (e) {
-        setData([]);
-      }
-    })();
-  }, [userId]);
+      <div className="card">
+        <h3 className="text-xl mb-2 font-semibold">Submission Stats</h3>
+        <div>Total Submissions: {stats.total}</div>
+        <div>Accepted: {stats.ac}</div>
+        <div>Accuracy: {stats.ac_percent}%</div>
+      </div>
 
-  return (
-    <div className="mt-3">
-      {data.length === 0 && <div className="text-sm text-gray-500">No data</div>}
-      {data.map(t => (
-        <div key={t.tag} className="flex justify-between py-2 border-b">
-          <div>{t.tag}</div>
-          <div>{t.accepted_count}/{t.attempts} • {t.accuracy}%</div>
-        </div>
-      ))}
+      <div className="card">
+        <h3 className="text-xl mb-3 font-semibold">Weak Topics</h3>
+        {weak_topics.length === 0 && (
+          <div className="text-gray-400">No weak topics yet</div>
+        )}
+        {weak_topics.map((t, i) => (
+          <div key={i} className="flex justify-between border-b border-white/10 py-1">
+            <span>{t.name}</span>
+            <span className="text-red-400">{t.wrong_percent}% wrong</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

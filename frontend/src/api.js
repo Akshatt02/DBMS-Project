@@ -1,32 +1,90 @@
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-export function createApi({ getToken, onUnauthorized } = {}) {
-	return async function api(path, { method = 'GET', body = null, token = null } = {}) {
-		const headers = { 'Content-Type': 'application/json' };
-		const t = token || (getToken ? getToken() : null);
-		if (t) headers['Authorization'] = `Bearer ${t}`;
+const json = async (res) => {
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return text; }
+};
 
-		const res = await fetch(`${API}/api${path}`, {
-			method,
-			headers,
-			body: body ? JSON.stringify(body) : null,
-		});
+export const login = async (email, password) => {
+    const res = await fetch(`${BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    const data = await json(res);
+    if (!res.ok) throw data;
+    return data;
+};
 
-		if (res.status === 401 && onUnauthorized) {
-			onUnauthorized();
-			throw { status: 401, message: 'Unauthorized' };
-		}
+export const register = async (payload) => {
+    const res = await fetch(`${BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await json(res);
+    if (!res.ok) throw data;
+    return data;
+};
 
-		const text = await res.text();
-		try {
-			const json = text ? JSON.parse(text) : null;
-			if (!res.ok) throw { status: res.status, ...json };
-			return json;
-		} catch (err) {
-			if (!res.ok) throw { status: res.status, message: text || 'Request failed' };
-			return text;
-		}
-	};
-}
+export const fetchProblems = async (token, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    const res = await fetch(`${BASE}/api/problems?${q}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' }
+    });
+    const data = await json(res);
+    if (!res.ok) throw data;
+    return data;
+};
 
-export default createApi;
+export const createSubmission = async (token, payload) => {
+    const res = await fetch(`${BASE}/api/submissions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await json(res);
+    if (!res.ok) throw data;
+    return data;
+};
+
+export const getMySubmissions = async (token) => {
+    const res = await fetch(`${BASE}/api/submissions/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await json(res);
+    if (!res.ok) throw data;
+    return data;
+};
+
+export const fetchContests = async (token) => {
+    const res = await fetch(`${BASE}/api/contests`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await json(res);
+    if (!res.ok) throw data;
+    return data;
+};
+
+export const fetchProfile = async (token) => {
+  const res = await fetch(`${BASE}/api/profile/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export default {
+  login,
+  register,
+  fetchProblems,
+  createSubmission,
+  getMySubmissions,
+  fetchContests,
+  fetchProfile,
+};
+

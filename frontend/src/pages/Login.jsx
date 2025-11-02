@@ -1,45 +1,38 @@
-// src/pages/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../apiClient';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import AuthContext from '../context/AuthContext';
+import api from '../api';
 
 export default function Login() {
-  const [usernameOrEmail, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [err, setErr] = useState(null);
-  const nav = useNavigate();
-
-  const { login } = useAuth();
-  const { push } = useToast();
+  const [error, setError] = useState(null);
+  const { setToken, setUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
-    setErr(null);
+    setError(null);
     try {
-      const res = await api('/users/login', { method: 'POST', body: { usernameOrEmail, password } });
-      login(res.token);
-      push('Logged in', 'info');
-      nav('/');
-    } catch (e) {
-      setErr(e.message || 'Login failed');
-      push(e.message || 'Login failed', 'error');
+      const res = await api.login(email, password);
+      setToken(res.token);
+      setUser(res.user);
+      navigate('/problems');
+    } catch (err) {
+      setError(err?.message || JSON.stringify(err));
     }
   };
 
   return (
-    <div className="site-wrap">
-      <div className="site-container">
-        <div className="card max-w-md mx-auto">
-          <h2 className="text-2xl font-semibold mb-4">Login</h2>
-          {err && <div className="bg-red-600 text-white p-2 rounded mb-3">{err}</div>}
-          <form onSubmit={submit} className="space-y-3">
-            <input type="text" value={usernameOrEmail} onChange={e => setUsername(e.target.value)} placeholder="username or email" className="w-full border p-2 rounded"/>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="password" className="w-full border p-2 rounded"/>
-            <button className="w-full btn btn-primary">Login</button>
-          </form>
-        </div>
+    <div className="max-w-md mx-auto">
+      <div className="card">
+        <h2 className="text-2xl mb-3">Login</h2>
+        {error && <div className="mb-3 text-red-400">{error}</div>}
+        <form onSubmit={submit} className="flex flex-col gap-3">
+          <input required value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="p-2 rounded bg-transparent border border-white/5" />
+          <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="p-2 rounded bg-transparent border border-white/5" />
+          <div className="flex justify-end"><button className="btn btn-primary">Login</button></div>
+        </form>
       </div>
     </div>
   );

@@ -1,43 +1,41 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { setToken as storeToken, getToken as readToken, clearToken as removeToken, parseToken } from '../auth';
+import React, { createContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setTokenState] = useState(() => readToken());
-  const [user, setUser] = useState(() => parseToken());
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // keep user in sync with token
-    setUser(parseToken());
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
   }, [token]);
 
-  const login = (t) => {
-    storeToken(t);
-    setTokenState(t);
-    setUser(parseToken());
-  };
+  useEffect(() => {
+    if (user) localStorage.setItem('user', JSON.stringify(user));
+    else localStorage.removeItem('user');
+  }, [user]);
 
   const logout = () => {
-    removeToken();
-    setTokenState(null);
+    setToken(null);
     setUser(null);
-    // navigate to login via location to be safe from hooks
-    window.location.href = '/login';
+    navigate('/login');
   };
 
-  const value = {
-    token,
-    user,
-    isLoggedIn: !!token,
-    isAdmin: !!(user && (user.is_admin === 1 || user.is_admin === true)),
-    login,
-    logout
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ token, setToken, user, setUser, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
-
-export const useAuth = () => useContext(AuthContext);
 
 export default AuthContext;

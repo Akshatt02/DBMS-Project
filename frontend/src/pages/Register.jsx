@@ -1,49 +1,97 @@
-// src/pages/Register.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../apiClient';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import AuthContext from '../context/AuthContext';
+import api from '../api';
 
 export default function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [institution, setInstitution] = useState('');
-  const [err, setErr] = useState(null);
-  const nav = useNavigate();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    department: '',
+    batch: ''
+  });
+  const [error, setError] = useState(null);
+  const { setToken, setUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const { login } = useAuth();
-  const { push } = useToast();
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const submit = async (e) => {
     e.preventDefault();
-    setErr(null);
+    setError(null);
     try {
-      const res = await api('/users/register', { method: 'POST', body: { username, email, password, institution } });
-      login(res.token);
-      push('Registered and logged in', 'info');
-      nav('/');
-    } catch (e) {
-      setErr(e.message || 'Registration failed');
-      push(e.message || 'Registration failed', 'error');
+      const res = await api.register(formData);
+      setToken(res.token);
+      setUser(res.user);
+      navigate('/problems');
+    } catch (err) {
+      setError(err?.message || JSON.stringify(err));
     }
   };
 
   return (
-    <div className="site-wrap">
-      <div className="site-container">
-        <div className="card max-w-md mx-auto">
-          <h2 className="text-2xl font-semibold mb-4">Register</h2>
-          {err && <div className="bg-red-600 text-white p-2 rounded mb-3">{err}</div>}
-          <form onSubmit={submit} className="space-y-3">
-            <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="username" className="w-full border p-2 rounded"/>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email" className="w-full border p-2 rounded"/>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="password" className="w-full border p-2 rounded"/>
-            <input type="text" value={institution} onChange={e => setInstitution(e.target.value)} placeholder="institution" className="w-full border p-2 rounded"/>
-            <button className="w-full btn btn-primary">Register</button>
-          </form>
-        </div>
+    <div className="max-w-md mx-auto mt-10">
+      <div className="card p-6 bg-gray-800 rounded-2xl shadow-lg">
+        <h2 className="text-2xl mb-4 font-semibold text-center">Register</h2>
+        {error && <div className="mb-3 text-red-400 text-center">{error}</div>}
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <input
+            required
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Full Name"
+            className="p-2 rounded bg-transparent border border-white/10"
+          />
+          <input
+            required
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Email"
+            className="p-2 rounded bg-transparent border border-white/10"
+          />
+          <input
+            required
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Password"
+            className="p-2 rounded bg-transparent border border-white/10"
+          />
+          <select
+            required
+            name="department"
+            value={formData.department}
+            onChange={handleChange}
+            className="p-2 rounded bg-transparent border border-white/10"
+          >
+            <option value="" disabled>Select Department</option>
+            <option value="CSE">CSE</option>
+            <option value="AIDS">AIDS</option>
+            <option value="ECE">ECE</option>
+            <option value="MECH">MECH</option>
+          </select>
+          <input
+            required
+            name="batch"
+            value={formData.batch}
+            onChange={handleChange}
+            placeholder="Batch (e.g., 2022)"
+            className="p-2 rounded bg-transparent border border-white/10"
+          />
+          <div className="flex justify-end">
+            <button className="btn btn-primary">Register</button>
+          </div>
+        </form>
       </div>
     </div>
   );

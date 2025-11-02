@@ -3,22 +3,53 @@ import pool from '../config/db.js';
 
 export const createSubmission = async (req, res) => {
     try {
-        const { problem_id, contest_id = null, verdict } = req.body;
         const userId = req.user.id;
+        const { contest_id = null, problem_id, verdict } = req.body;
+
         if (!problem_id || !verdict) return res.status(400).json({ message: 'Missing fields' });
 
-        // Basic validation: ensure problem exists
-        const [pRows] = await pool.query('SELECT id FROM problems WHERE id = ?', [problem_id]);
-        if (!pRows.length) return res.status(404).json({ message: 'Problem not found' });
+        if (contest_id) {
+            const [[contest]] = await pool.query('SELECT * FROM contests WHERE id = ?', [contest_id]);
+            if (!contest) return res.status(400).json({ message: 'Contest not found' });
 
-        await pool.query(
+            const now = new Date();
+            const start = new Date(contest.start_time);
+            const end = new Date(contest.end_time);
+            if (now < start || now > end) {
+                return res.status(403).json({ message: 'Submissions allowed only during contest window' });
+            }
+        }
+
+        // Insert submission
+        const [result] = await pool.query(
             `INSERT INTO submissions (user_id, contest_id, problem_id, verdict) VALUES (?, ?, ?, ?)`,
             [userId, contest_id, problem_id, verdict]
         );
-        return res.json({ message: 'Submission saved' });
+
+        const insertId = result.insertId;
+
+        if (contest_id) {
+            await pool.query(
+                `INSERT IGNORE INTO contest_participants (contest_id, user_id, rating_before)
+         VALUES (?, ?, (SELECT rating FROM users WHERE id = ?))`,
+                [contest_id, userId, userId]
+            );
+        }
+
+        // Fetch newly created submission to return
+        const [[submission]] = await pool.query(
+            `SELECT s.*, u.name AS user_name, p.title AS problem_title
+       FROM submissions s
+       JOIN users u ON s.user_id = u.id
+       JOIN problems p ON s.problem_id = p.id
+       WHERE s.id = ?`,
+            [insertId]
+        );
+
+        res.json({ submission });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Failed to create submission' });
     }
 };
 

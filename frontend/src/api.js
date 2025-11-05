@@ -182,6 +182,79 @@ async function fetchDepartmentUsers(token, department) {
   return res.json();
 }
 
+export const createContest = async (token, payload) => {
+  const res = await fetch(`${BASE}/api/faculty/contests/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const createProblem = async (token, payload) => {
+  const res = await fetch(`${BASE}/api/faculty/contests/problems`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const addProblemToContest = async (token, contestId, problemId) => {
+  const res = await fetch(`${BASE}/api/faculty/contests/${contestId}/problems`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ problemId }),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const fetchFacultyContests = async (token) => {
+  const res = await fetch(`${BASE}/api/faculty/contests`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const removeProblemFromContest = async (token, contestId, problemId) => {
+  const res = await fetch(`${BASE}/api/faculty/contests/${contestId}/problems/${problemId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const updateContest = async (token, contestId, payload) => {
+  const res = await fetch(`${BASE}/api/faculty/contests/${contestId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const deleteContest = async (token, contestId) => {
+  const res = await fetch(`${BASE}/api/faculty/contests/${contestId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
 export default {
   login,
   register,
@@ -201,4 +274,11 @@ export default {
   fetchContestParticipants,
   registerForContest,
   fetchDepartmentUsers,
+  createContest,
+  createProblem,
+  addProblemToContest,
+  fetchFacultyContests,
+  removeProblemFromContest,
+  updateContest,
+  deleteContest,
 };

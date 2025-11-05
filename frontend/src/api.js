@@ -266,6 +266,48 @@ export const fetchAdminAnalytics = async (token, params = {}) => {
   return data;
 };
 
+export const downloadAdminAnalytics = async (token, params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE}/api/admin/analytics/download?${q}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    let text;
+    try {
+      text = await res.text();
+    } catch (e) {
+      text = 'Unknown error';
+    }
+    console.error('Download failed:', res.status, text);
+    throw new Error(`Failed to download CSV: ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  return blob;
+};
+
+export const fetchDepartmentBatchStats = async (token, department) => {
+  const res = await fetch(`${BASE}/api/departments/department/${department}/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const downloadDepartmentBatchStats = async (token, department) => {
+  const res = await fetch(`${BASE}/api/departments/department/${department}/stats?format=csv`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const data = await json(res);
+    throw data;
+  }
+  const blob = await res.blob();
+  return blob;
+};
+
 export const removeProblemFromContest = async (token, contestId, problemId) => {
   const res = await fetch(`${BASE}/api/faculty/contests/${contestId}/problems/${problemId}`, {
     method: 'DELETE',
@@ -358,7 +400,10 @@ export default {
   createAdminContest,
   fetchAdminContests,
   fetchAdminAnalytics,
+  downloadAdminAnalytics,
   removeProblemFromContestAdmin,
+  fetchDepartmentBatchStats,
+  downloadDepartmentBatchStats,
   updateContestAdmin,
   deleteContestAdmin,
 };

@@ -48,7 +48,68 @@ export const getAdminAnalytics = async (req, res) => {
       submissions: totalSubmissions.count,
     };
 
-    res.json({ users, stats });
+    // batch-wise aggregates: highest rating, highest solved_count, avg rating, avg solved
+    const batchSql = `
+      WITH user_solved AS (
+        SELECT u.id, u.batch, u.rating,
+          (SELECT COUNT(DISTINCT s.problem_id) FROM submissions s WHERE s.user_id = u.id AND s.verdict = 'AC') AS solved_count
+        FROM users u
+        WHERE u.role = 'user'
+      )
+      SELECT
+        COALESCE(batch, 'unknown') AS batch,
+        MAX(rating) AS highest_rating,
+        MAX(solved_count) AS highest_solved,
+        AVG(rating) AS avg_rating,
+        AVG(solved_count) AS avg_solved,
+        COUNT(*) AS users_count
+      FROM user_solved
+      GROUP BY batch
+      ORDER BY batch ASC
+    `;
+
+    const [batchStats] = await pool.query(batchSql);
+
+    // department-wise aggregates
+    const deptSql = `
+      WITH user_solved AS (
+        SELECT u.id, d.name AS department, u.rating,
+          (SELECT COUNT(DISTINCT s.problem_id) FROM submissions s WHERE s.user_id = u.id AND s.verdict = 'AC') AS solved_count
+        FROM users u
+        LEFT JOIN departments d ON u.department_id = d.id
+        WHERE u.role = 'user'
+      )
+      SELECT
+        COALESCE(department, 'unknown') AS department,
+        MAX(rating) AS highest_rating,
+        MAX(solved_count) AS highest_solved,
+        AVG(rating) AS avg_rating,
+        AVG(solved_count) AS avg_solved,
+        COUNT(*) AS users_count
+      FROM user_solved
+      GROUP BY department
+      ORDER BY department ASC
+    `;
+
+    const [departmentStats] = await pool.query(deptSql);
+    if (req.query.format === 'csv' || req.query.download === '1' || req.path.includes('download')) {
+      const headerBatch = 'batch,users_count,highest_rating,highest_solved,avg_rating,avg_solved\n';
+      const linesBatch = batchStats.map(b =>
+        `${b.batch},${b.users_count},${b.highest_rating || 0},${b.highest_solved || 0},${Number(b.avg_rating || 0).toFixed(2)},${Number(b.avg_solved || 0).toFixed(2)}`
+      );
+
+      const headerDept = 'department,users_count,highest_rating,highest_solved,avg_rating,avg_solved\n';
+      const linesDept = departmentStats.map(d =>
+        `${d.department},${d.users_count},${d.highest_rating || 0},${d.highest_solved || 0},${Number(d.avg_rating || 0).toFixed(2)},${Number(d.avg_solved || 0).toFixed(2)}`
+      );
+
+      const csv = headerBatch + linesBatch.join('\n') + '\n\n' + headerDept + linesDept.join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="admin_batch_department_stats.csv"');
+      return res.send(csv);
+    }
+
+    res.json({ users, stats, batchStats, departmentStats });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to fetch analytics' });

@@ -108,6 +108,11 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
           <div className="mt-2 text-sm text-gray-400">Contest not started yet.</div>
         )}
 
+        {/* Show registration hint when user is logged in but not registered */}
+        {user && user.role === 'user' && !registered && (
+          <div className="mt-2 text-sm text-yellow-400">You are not registered for this contest. Please register from the contest header to submit solutions.</div>
+        )}
+
         {msg && <div className="mt-3 text-green-500">{msg}</div>}
         {error && <div className="mt-3 text-red-500">{error}</div>}
       </div>

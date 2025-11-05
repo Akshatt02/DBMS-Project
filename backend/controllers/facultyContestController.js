@@ -100,6 +100,16 @@ export const removeProblemFromContest = async (req, res) => {
     if (!contest) return res.status(403).json({ message: 'Not authorized to modify this contest' });
 
     await pool.query('DELETE FROM contest_problems WHERE contest_id = ? AND problem_id = ?', [contestId, problemId]);
+
+    // if no problems left in contest, delete contest and associated data (submissions, participants)
+    const [remaining] = await pool.query('SELECT COUNT(*) AS cnt FROM contest_problems WHERE contest_id = ?', [contestId]);
+    if (remaining[0].cnt === 0) {
+      await pool.query('DELETE FROM submissions WHERE contest_id = ?', [contestId]);
+      await pool.query('DELETE FROM contest_participants WHERE contest_id = ?', [contestId]);
+      await pool.query('DELETE FROM contests WHERE id = ?', [contestId]);
+      return res.json({ message: 'Problem removed; contest had no problems so contest and related data were deleted' });
+    }
+
     res.json({ message: 'Problem removed from contest' });
   } catch (err) {
     console.error(err);
@@ -146,6 +156,8 @@ export const deleteContest = async (req, res) => {
     const [[contest]] = await pool.query('SELECT * FROM contests WHERE id = ? AND created_by = ?', [contestId, facultyId]);
     if (!contest) return res.status(403).json({ message: 'Not authorized to delete this contest' });
 
+    // delete submissions tied to contest, participants, and contest problems, then contest
+    await pool.query('DELETE FROM submissions WHERE contest_id = ?', [contestId]);
     await pool.query('DELETE FROM contest_problems WHERE contest_id = ?', [contestId]);
     await pool.query('DELETE FROM contest_participants WHERE contest_id = ?', [contestId]);
     await pool.query('DELETE FROM contests WHERE id = ?', [contestId]);

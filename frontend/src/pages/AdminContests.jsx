@@ -49,12 +49,16 @@ export default function AdminContests() {
                 </p>
               </div>
               <div className="flex gap-4">
-                <Link
-                  to={`/admin/contest/${c.id}/edit`}
-                  className="text-blue-400 hover:underline"
-                >
-                  Edit
-                </Link>
+                {new Date() <= new Date(c.end_time) ? (
+                  <Link
+                    to={`/admin/contest/${c.id}/edit`}
+                    className="text-blue-400 hover:underline"
+                  >
+                    Edit
+                  </Link>
+                ) : (
+                  <span className="text-gray-500">Edit (locked)</span>
+                )}
                 <Link
                   to={`/contests/${c.id}`}
                   className="text-green-400 hover:underline"

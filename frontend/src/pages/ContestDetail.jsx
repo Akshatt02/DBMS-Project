@@ -91,8 +91,7 @@ export default function ContestDetail() {
           {start.toLocaleString()} → {end.toLocaleString()}
         </div>
 
-        {/* Register Button */}
-        {showRegisterButton && (
+        {showRegisterButton && user?.role === 'user' && (
           registered ? (
             <span className="badge badge-success mt-3">Registered</span>
           ) : (

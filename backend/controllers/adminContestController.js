@@ -88,6 +88,16 @@ export const removeProblemFromContestAdmin = async (req, res) => {
   try {
     const { contestId, problemId } = req.params;
     await pool.query('DELETE FROM contest_problems WHERE contest_id = ? AND problem_id = ?', [contestId, problemId]);
+
+    // if no problems left in contest, delete contest and associated data (submissions, participants)
+    const [remaining] = await pool.query('SELECT COUNT(*) AS cnt FROM contest_problems WHERE contest_id = ?', [contestId]);
+    if (remaining[0].cnt === 0) {
+      await pool.query('DELETE FROM submissions WHERE contest_id = ?', [contestId]);
+      await pool.query('DELETE FROM contest_participants WHERE contest_id = ?', [contestId]);
+      await pool.query('DELETE FROM contests WHERE id = ?', [contestId]);
+      return res.json({ message: 'Problem removed; contest had no problems so contest and related data were deleted' });
+    }
+
     res.json({ message: 'Problem removed from contest' });
   } catch (err) {
     console.error(err);
@@ -127,6 +137,8 @@ export const updateContestAdmin = async (req, res) => {
 export const deleteContestAdmin = async (req, res) => {
   try {
     const { contestId } = req.params;
+    // delete submissions tied to contest, participants, contest_problems, then contest
+    await pool.query('DELETE FROM submissions WHERE contest_id = ?', [contestId]);
     await pool.query('DELETE FROM contest_problems WHERE contest_id = ?', [contestId]);
     await pool.query('DELETE FROM contest_participants WHERE contest_id = ?', [contestId]);
     await pool.query('DELETE FROM contests WHERE id = ?', [contestId]);

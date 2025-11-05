@@ -40,12 +40,17 @@ export default function FacultyMyContests() {
                   {new Date(c.end_time).toLocaleString()}
                 </p>
               </div>
-              <Link
-                to={`/faculty/contest/${c.id}/edit`}
-                className="text-blue-400 hover:underline"
-              >
-                Edit
-              </Link>
+              {/* Only allow editing if contest has not ended */}
+              {new Date() <= new Date(c.end_time) ? (
+                <Link
+                  to={`/faculty/contest/${c.id}/edit`}
+                  className="text-blue-400 hover:underline"
+                >
+                  Edit
+                </Link>
+              ) : (
+                <span className="text-gray-500">Edit (locked)</span>
+              )}
               <Link
                 to={`/contests/${c.id}`}
                 className="text-green-400 hover:underline"

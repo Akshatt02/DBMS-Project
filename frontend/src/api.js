@@ -244,6 +244,16 @@ export const fetchAdminContests = async (token) => {
   return data;
 };
 
+export const fetchAdminAnalytics = async (token, params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE}/api/admin/analytics?${q}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
 export const removeProblemFromContest = async (token, contestId, problemId) => {
   const res = await fetch(`${BASE}/api/faculty/contests/${contestId}/problems/${problemId}`, {
     method: 'DELETE',
@@ -334,6 +344,7 @@ export default {
   deleteContest,
   createAdminContest,
   fetchAdminContests,
+  fetchAdminAnalytics,
   removeProblemFromContestAdmin,
   updateContestAdmin,
   deleteContestAdmin,

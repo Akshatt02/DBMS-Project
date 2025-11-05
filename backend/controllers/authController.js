@@ -17,7 +17,7 @@ export const register = async (req, res) => {
         const [exists] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
         if (exists.length)
             return res.status(400).json({ message: 'Email already registered' });
-
+        const rating = role === 'user' ? 1000 : null;
         const [result] = await pool.query(
             `INSERT INTO users (name, email, password, role, department_id, batch)
         VALUES (?, ?, ?, ?, ?, ?)`,
@@ -40,7 +40,7 @@ export const register = async (req, res) => {
                 role,
                 department_id,
                 batch,
-                rating: 1000,
+                rating,
             },
         });
     } catch (err) {

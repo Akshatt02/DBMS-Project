@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    navigate('/login');
+    navigate('/');
   };
 
   return (

@@ -4,6 +4,11 @@ import pool from '../config/db.js';
 export const createSubmission = async (req, res) => {
     try {
         const userId = req.user.id;
+        const userRole = req.user.role;
+
+        if (userRole !== 'user') {
+            return res.status(403).json({ message: 'Only students may submit solutions' });
+        }
         const { contest_id = null, problem_id, verdict } = req.body;
 
         if (!problem_id || !verdict) return res.status(400).json({ message: 'Missing fields' });

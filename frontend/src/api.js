@@ -5,11 +5,13 @@ const json = async (res) => {
   try { return JSON.parse(text); } catch { return text; }
 };
 
-export const login = async (email, password) => {
+export const login = async (email, password, role) => {
+  const body = { email, password };
+  if (role) body.role = role;
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
   });
   const data = await json(res);
   if (!res.ok) throw data;
@@ -27,16 +29,6 @@ export const register = async (payload) => {
   return data;
 };
 
-export const loginFaculty = async (email, password) => {
-  const res = await fetch(`${BASE}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, role: 'faculty' }),
-  });
-  const data = await json(res);
-  if (!res.ok) throw data;
-  return data;
-};
 
 export const registerFaculty = async (payload) => {
   const res = await fetch(`${BASE}/api/auth/register`, {
@@ -319,7 +311,6 @@ export const deleteContestAdmin = async (token, contestId) => {
 export default {
   login,
   register,
-  loginFaculty,
   registerFaculty,
   fetchDepartments,
   fetchProblems,

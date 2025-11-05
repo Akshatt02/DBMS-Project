@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerFaculty, fetchDepartments } from '../api';
+import AuthContext from '../context/AuthContext';
 
 export default function FacultyRegister() {
+  const { user } = useContext(AuthContext);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -12,6 +14,10 @@ export default function FacultyRegister() {
   const [departments, setDepartments] = useState([]);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) navigate('/contests');
+  }, [user, navigate]);
 
   useEffect(() => {
     fetchDepartments()
@@ -26,7 +32,7 @@ export default function FacultyRegister() {
     e.preventDefault();
     try {
       await registerFaculty(form);
-      navigate('/faculty/login');
+      navigate('/login');
     } catch (err) {
       setError(err.message || 'Registration failed');
     }

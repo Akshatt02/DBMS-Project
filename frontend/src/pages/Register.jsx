@@ -4,6 +4,13 @@ import AuthContext from '../context/AuthContext';
 import api from '../api';
 
 export default function Register() {
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (user) navigate('/contests');
+  }, [user, navigate]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -13,7 +20,7 @@ export default function Register() {
   });
   const [error, setError] = useState(null);
   const { setToken, setUser } = useContext(AuthContext);
-  const navigate = useNavigate();
+  
 
   const handleChange = (e) => {
     setFormData({

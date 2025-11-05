@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,7 +11,6 @@ import Contests from './pages/Contests';
 import ContestDetail from './pages/ContestDetail';
 import Profile from './pages/Profile';
 import Landing from './pages/Landing';
-import FacultyLogin from './pages/FacultyLogin';
 import FacultyRegister from './pages/FacultyRegister';
 import FacultyAnalytics from './pages/FacultyAnalytics';
 import FacultyContestCreate from './pages/FacultyContestCreate';
@@ -23,10 +22,13 @@ import FacultyMyContests from './pages/FacultyMyContests';
 import { AuthProvider } from './context/AuthContext';
 
 export default function App() {
+  const location = useLocation();
+  const hideNavPaths = ['/', '/login', '/register', '/faculty/register'];
+
   return (
     <AuthProvider>
       <div className="min-h-screen">
-        <NavBar />
+        {!hideNavPaths.includes(location.pathname) && <NavBar />}
         <main className="container mx-auto p-4">
           <Routes>
             <Route path="/" element={<Landing />} />
@@ -34,10 +36,8 @@ export default function App() {
             {/* Auth */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/" element={<Landing />} />
 
             {/* Faculty */}
-            <Route path="/faculty/login" element={<FacultyLogin />} />
             <Route path="/faculty/register" element={<FacultyRegister />} />
             <Route path="/faculty/analytics" element={<FacultyAnalytics />} />
             <Route path="/faculty/create-contest" element={<FacultyContestCreate />} />
@@ -48,7 +48,7 @@ export default function App() {
             <Route path="/admin/create-contest" element={<AdminContestCreate />} />
             <Route path="/admin/contest/:id/edit" element={<AdminContestEdit />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
-            
+
             {/* Problems */}
             <Route path="/problems" element={<ProblemSet />} />
             <Route path="/problems/:id" element={<ProblemDetail />} />

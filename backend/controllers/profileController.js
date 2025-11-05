@@ -48,10 +48,59 @@ export const getProfile = async (req, res) => {
             [userId]
         );
 
+        // difficulty counts (attempted and solved per difficulty)
+        const [difficultyCounts] = await pool.query(
+          `SELECT p.difficulty,
+            COUNT(DISTINCT p.id) AS attempted,
+            COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN p.id END) AS solved
+           FROM submissions s
+           JOIN problems p ON s.problem_id = p.id
+           WHERE s.user_id = ?
+           GROUP BY p.difficulty`,
+          [userId]
+        );
+
+        // tag-wise problem counts (distinct problems attempted and solved per tag)
+        const [tagCounts] = await pool.query(
+          `SELECT t.name,
+            COUNT(DISTINCT p.id) AS attempted,
+            COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN p.id END) AS solved
+           FROM submissions s
+           JOIN problems p ON s.problem_id = p.id
+           JOIN problem_tags pt ON p.id = pt.problem_id
+           JOIN tags t ON pt.tag_id = t.id
+           WHERE s.user_id = ?
+           GROUP BY t.id
+           ORDER BY attempted DESC`,
+          [userId]
+        );
+
+        // contests participated and recent contest history
+        const [[contestsCountRow]] = await pool.query(
+          'SELECT COUNT(*) AS cnt FROM contest_participants WHERE user_id = ?',
+          [userId]
+        );
+        const contestsCount = contestsCountRow.cnt || 0;
+
+        const [contestHistory] = await pool.query(
+          `SELECT c.id, c.title, c.start_time, c.end_time,
+            (SELECT COUNT(DISTINCT s.problem_id) FROM submissions s WHERE s.user_id = ? AND s.contest_id = c.id AND s.verdict = 'AC' AND s.created_at BETWEEN c.start_time AND c.end_time) AS solved_count
+           FROM contest_participants cp
+           JOIN contests c ON cp.contest_id = c.id
+           WHERE cp.user_id = ?
+           ORDER BY c.start_time DESC
+           LIMIT 20`,
+          [userId, userId]
+        );
+
         res.json({
             user,
             stats: { total, ac, ac_percent },
             weak_topics: weakTopics,
+            difficulty_counts: difficultyCounts,
+            tag_counts: tagCounts,
+            contests_count: contestsCount,
+            contest_history: contestHistory,
         });
     } catch (err) {
         console.error(err);
@@ -103,10 +152,57 @@ export const getProfileById = async (req, res) => {
       [userId]
     );
 
+    // difficulty counts
+    const [difficultyCounts] = await pool.query(
+      `SELECT p.difficulty,
+        COUNT(DISTINCT p.id) AS attempted,
+        COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN p.id END) AS solved
+       FROM submissions s
+       JOIN problems p ON s.problem_id = p.id
+       WHERE s.user_id = ?
+       GROUP BY p.difficulty`,
+      [userId]
+    );
+
+    const [tagCounts] = await pool.query(
+      `SELECT t.name,
+        COUNT(DISTINCT p.id) AS attempted,
+        COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN p.id END) AS solved
+       FROM submissions s
+       JOIN problems p ON s.problem_id = p.id
+       JOIN problem_tags pt ON p.id = pt.problem_id
+       JOIN tags t ON pt.tag_id = t.id
+       WHERE s.user_id = ?
+       GROUP BY t.id
+       ORDER BY attempted DESC`,
+      [userId]
+    );
+
+    const [[contestsCountRow]] = await pool.query(
+      'SELECT COUNT(*) AS cnt FROM contest_participants WHERE user_id = ?',
+      [userId]
+    );
+    const contestsCount = contestsCountRow.cnt || 0;
+
+    const [contestHistory] = await pool.query(
+      `SELECT c.id, c.title, c.start_time, c.end_time,
+        (SELECT COUNT(DISTINCT s.problem_id) FROM submissions s WHERE s.user_id = ? AND s.contest_id = c.id AND s.verdict = 'AC' AND s.created_at BETWEEN c.start_time AND c.end_time) AS solved_count
+       FROM contest_participants cp
+       JOIN contests c ON cp.contest_id = c.id
+       WHERE cp.user_id = ?
+       ORDER BY c.start_time DESC
+       LIMIT 20`,
+      [userId, userId]
+    );
+
     res.json({
       user,
       stats: { total, ac, ac_percent },
       weak_topics: weakTopics,
+      difficulty_counts: difficultyCounts,
+      tag_counts: tagCounts,
+      contests_count: contestsCount,
+      contest_history: contestHistory,
     });
   } catch (err) {
     console.error(err);

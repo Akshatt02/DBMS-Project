@@ -11,13 +11,16 @@ export const register = async (req, res) => {
         if (!name || !email || !password)
             return res.status(400).json({ message: 'Missing fields' });
 
+        if (role !== 'user' && role !== 'faculty' && role !== 'admin')
+            return res.status(400).json({ message: 'Invalid role' });
+
         const [exists] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
         if (exists.length)
             return res.status(400).json({ message: 'Email already registered' });
 
-        // No hashing here (for testing only)
         const [result] = await pool.query(
-            `INSERT INTO users (name, email, password, role, department_id, batch) VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO users (name, email, password, role, department_id, batch)
+        VALUES (?, ?, ?, ?, ?, ?)`,
             [name, email, password, role, department_id, batch]
         );
 
@@ -30,7 +33,15 @@ export const register = async (req, res) => {
 
         res.json({
             token,
-            user: { id: userId, name, email, role, department_id, batch, rating: 1000 },
+            user: {
+                id: userId,
+                name,
+                email,
+                role,
+                department_id,
+                batch,
+                rating: 1000,
+            },
         });
     } catch (err) {
         console.error(err);
@@ -40,7 +51,8 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
+
         if (!email || !password)
             return res.status(400).json({ message: 'Missing fields' });
 
@@ -49,9 +61,11 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
 
         const user = rows[0];
-
         if (user.password !== password)
             return res.status(400).json({ message: 'Invalid credentials' });
+
+        if (role && user.role !== role)
+            return res.status(403).json({ message: 'Unauthorized role access' });
 
         const token = jwt.sign(
             { id: user.id, role: user.role, email: user.email, department_id: user.department_id },

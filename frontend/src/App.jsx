@@ -10,6 +10,9 @@ import Submissions from './pages/Submissions';
 import Contests from './pages/Contests';
 import ContestDetail from './pages/ContestDetail';
 import Profile from './pages/Profile';
+import Landing from './pages/Landing';
+import FacultyLogin from './pages/FacultyLogin';
+import FacultyRegister from './pages/FacultyRegister';
 import { AuthProvider } from './context/AuthContext';
 
 export default function App() {
@@ -19,11 +22,14 @@ export default function App() {
         <NavBar />
         <main className="container mx-auto p-4">
           <Routes>
-            <Route path="/" element={<Navigate to="/problems" replace />} />
+            <Route path="/" element={<Landing />} />
 
             {/* Auth */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/faculty/login" element={<FacultyLogin />} />
+            <Route path="/faculty/register" element={<FacultyRegister />} />
 
             {/* Problems */}
             <Route path="/problems" element={<ProblemSet />} />
@@ -36,9 +42,6 @@ export default function App() {
             <Route path="/contests" element={<Contests />} />
             {/* Contest detail: uses query ?tab=leaderboard or ?tab=submissions or shows problems by default */}
             <Route path="/contests/:id" element={<ContestDetail />} />
-            {/* Keep direct shortcut routes (optional) — they render the same ContestDetail which will read the tab from the URL or query param */}
-            <Route path="/contests/:id/leaderboard" element={<ContestDetail />} />
-            <Route path="/contests/:id/submissions" element={<ContestDetail />} />
 
             {/* Profile */}
             <Route path="/profile" element={<Profile />} />

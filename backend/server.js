@@ -8,6 +8,7 @@ import problemsRoutes from './routes/problems.js';
 import submissionsRoutes from './routes/submissions.js';
 import contestRoutes from './routes/contests.js';
 import profileRoutes from './routes/profile.js';
+import departmentRoutes from './routes/departments.js';
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,7 @@ app.use('/api/problems', problemsRoutes);
 app.use('/api/submissions', submissionsRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/departments', departmentRoutes);
 
 app.get('/', (req, res) => res.send({ ok: true }));
 

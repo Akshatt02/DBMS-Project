@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const raw = localStorage.getItem('user');
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });
@@ -25,6 +25,12 @@ export const AuthProvider = ({ children }) => {
     else localStorage.removeItem('user');
   }, [user]);
 
+  const login = (token, userData, redirectTo = '/contests') => {
+    setToken(token);
+    setUser(userData);
+    navigate(redirectTo);
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -32,7 +38,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, setToken, user, setUser, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        setToken,
+        setUser,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

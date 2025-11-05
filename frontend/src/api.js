@@ -9,7 +9,7 @@ export const login = async (email, password) => {
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password }),
   });
   const data = await json(res);
   if (!res.ok) throw data;
@@ -20,8 +20,37 @@ export const register = async (payload) => {
   const res = await fetch(`${BASE}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const loginFaculty = async (email, password) => {
+  const res = await fetch(`${BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role: 'faculty' }),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const registerFaculty = async (payload) => {
+  const res = await fetch(`${BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...payload, role: 'faculty' }),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const fetchDepartments = async () => {
+  const res = await fetch(`${BASE}/api/departments`);
   const data = await json(res);
   if (!res.ok) throw data;
   return data;
@@ -137,6 +166,9 @@ export const registerForContest = async (token, contestId) => {
 export default {
   login,
   register,
+  loginFaculty,
+  registerFaculty,
+  fetchDepartments,
   fetchProblems,
   createSubmission,
   getMySubmissions,

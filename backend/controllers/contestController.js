@@ -363,28 +363,80 @@ export const getContestSummary = async (req, res) => {
     if (!contest) return res.status(404).json({ message: 'Contest not found' });
 
     const endTime = contest.end_time || new Date();
+    const [[pc]] = await pool.query(
+      'SELECT COUNT(*) AS participants_count FROM contest_participants WHERE contest_id = ?',
+      [contestId]
+    );
+    const participantsCount = pc.participants_count || 0;
+
+    const [[sc]] = await pool.query(
+      `SELECT COUNT(DISTINCT user_id) AS solvers_count
+       FROM submissions
+       WHERE contest_id = ? AND verdict = 'AC' AND created_at BETWEEN ? AND ?`,
+      [contestId, contest.start_time, endTime]
+    );
+    const solversCount = sc.solvers_count || 0;
 
     const sql = `
+      WITH s_in AS (
+        SELECT * FROM submissions
+        WHERE contest_id = ? AND created_at BETWEEN ? AND ?
+      ),
+      first_ac AS (
+        SELECT user_id, problem_id, MIN(created_at) AS first_ac_time
+        FROM s_in
+        WHERE verdict = 'AC'
+        GROUP BY user_id, problem_id
+      ),
+      submissions_to_ac AS (
+        SELECT fa.user_id, fa.problem_id, COUNT(si.id) AS submissions_to_ac
+        FROM s_in si
+        JOIN first_ac fa ON si.user_id = fa.user_id AND si.problem_id = fa.problem_id AND si.created_at <= fa.first_ac_time
+        GROUP BY fa.user_id, fa.problem_id
+      )
       SELECT
         p.id AS problem_id,
         p.title AS problem_title,
-        COUNT(s.id) AS submissions,
-        SUM(s.verdict = 'AC') AS ac_count,
-        COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN s.user_id END) AS unique_solvers
+        (SELECT COUNT(*) FROM s_in si WHERE si.problem_id = p.id) AS submissions,
+        (SELECT COUNT(*) FROM s_in si WHERE si.problem_id = p.id AND si.verdict = 'AC') AS ac_count,
+        (SELECT COUNT(DISTINCT user_id) FROM first_ac fa WHERE fa.problem_id = p.id) AS unique_solvers,
+        (SELECT AVG(submissions_to_ac) FROM submissions_to_ac st WHERE st.problem_id = p.id) AS avg_submissions_to_ac
       FROM contest_problems cp
       JOIN problems p ON cp.problem_id = p.id
-      LEFT JOIN submissions s 
-        ON s.problem_id = p.id 
-        AND s.contest_id = ? 
-        AND s.created_at >= ? 
-        AND s.created_at <= ?
       WHERE cp.contest_id = ?
-      GROUP BY p.id, p.title
       ORDER BY p.id ASC
     `;
 
     const [rows] = await pool.query(sql, [contestId, contest.start_time, endTime, contestId]);
-    res.json({ summary: rows });
+
+    const summary = rows.map((r) => {
+      const submissions = Number(r.submissions) || 0;
+      const ac_count = Number(r.ac_count) || 0;
+      const unique_solvers = Number(r.unique_solvers) || 0;
+      const avg_submissions_to_ac = r.avg_submissions_to_ac ? Number(r.avg_submissions_to_ac) : null;
+      const success_rate = participantsCount > 0 ? unique_solvers / participantsCount : 0;
+      return { ...r, submissions, ac_count, unique_solvers, avg_submissions_to_ac, success_rate };
+    });
+
+    let hardestProblem = null;
+    let easiestProblem = null;
+    if (summary.length > 0) {
+      const byRate = [...summary].sort((a, b) => a.success_rate - b.success_rate);
+      hardestProblem = byRate[0];
+      easiestProblem = byRate[byRate.length - 1];
+    }
+
+    const percent_solvers = participantsCount > 0 ? (solversCount / participantsCount) * 100 : 0;
+
+    res.json({
+      summary,
+      participantsCount,
+      solversCount,
+      percent_solvers,
+      hardestProblem,
+      easiestProblem,
+      contest
+    });
   } catch (err) {
     console.error('getContestSummary error:', err);
     res.status(500).json({ message: 'Failed to fetch contest summary' });

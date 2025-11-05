@@ -1,16 +1,13 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
-import api from '../api';
+import api, { fetchDepartments } from '../api';
 
 export default function Register() {
-  const { user } = useContext(AuthContext);
+  const { user, setToken, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (user) navigate('/contests');
-  }, [user, navigate]);
-
+  const [departments, setDepartments] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,8 +16,23 @@ export default function Register() {
     batch: ''
   });
   const [error, setError] = useState(null);
-  const { setToken, setUser } = useContext(AuthContext);
-  
+
+  useEffect(() => {
+    if (user) navigate('/contests');
+  }, [user, navigate]);
+
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const data = await fetchDepartments();
+        setDepartments(data);
+      } catch (err) {
+        console.error('Error fetching departments:', err);
+        setDepartments([]);
+      }
+    };
+    loadDepartments();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -33,7 +45,10 @@ export default function Register() {
     e.preventDefault();
     setError(null);
     try {
-      const res = await api.register(formData);
+      const res = await api.register({
+        ...formData,
+        department_id: formData.department
+      });
       setToken(res.token);
       setUser(res.user);
       navigate('/problems');
@@ -82,11 +97,11 @@ export default function Register() {
             className="p-2 rounded bg-transparent border border-white/10"
           >
             <option value="" disabled>Select Department</option>
-            <option value="CSE">CSE</option>
-            <option value="AIDS">AIDS</option>
-            <option value="ECE">ECE</option>
-            <option value="MECH">MECH</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>{dept.name}</option>
+            ))}
           </select>
+
           <input
             required
             name="batch"

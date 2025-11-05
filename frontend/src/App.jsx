@@ -16,6 +16,8 @@ import FacultyRegister from './pages/FacultyRegister';
 import FacultyAnalytics from './pages/FacultyAnalytics';
 import FacultyContestCreate from './pages/FacultyContestCreate';
 import FacultyContestEdit from './pages/FacultyContestEdit';
+import AdminContestCreate from './pages/AdminContestCreate';
+import AdminContestEdit from './pages/AdminContestEdit';
 import FacultyMyContests from './pages/FacultyMyContests';
 import { AuthProvider } from './context/AuthContext';
 
@@ -39,6 +41,8 @@ export default function App() {
             <Route path="/faculty/analytics" element={<FacultyAnalytics />} />
             <Route path="/faculty/create-contest" element={<FacultyContestCreate />} />
             <Route path="/faculty/contest/:id/edit" element={<FacultyContestEdit />} />
+            <Route path="/admin/create-contest" element={<AdminContestCreate />} />
+            <Route path="/admin/contest/:id/edit" element={<AdminContestEdit />} />
             <Route path="/faculty/my-contests" element={<FacultyMyContests />} />
 
             {/* Problems */}

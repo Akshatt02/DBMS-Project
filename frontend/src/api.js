@@ -193,6 +193,17 @@ export const createContest = async (token, payload) => {
   return data;
 };
 
+export const createAdminContest = async (token, payload) => {
+  const res = await fetch(`${BASE}/api/admin/contests/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
 export const createProblem = async (token, payload) => {
   const res = await fetch(`${BASE}/api/faculty/contests/problems`, {
     method: 'POST',
@@ -217,6 +228,15 @@ export const addProblemToContest = async (token, contestId, problemId) => {
 
 export const fetchFacultyContests = async (token) => {
   const res = await fetch(`${BASE}/api/faculty/contests`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const fetchAdminContests = async (token) => {
+  const res = await fetch(`${BASE}/api/admin/contests`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await json(res);
@@ -255,6 +275,37 @@ export const deleteContest = async (token, contestId) => {
   return data;
 };
 
+export const removeProblemFromContestAdmin = async (token, contestId, problemId) => {
+  const res = await fetch(`${BASE}/api/admin/contests/${contestId}/problems/${problemId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const updateContestAdmin = async (token, contestId, payload) => {
+  const res = await fetch(`${BASE}/api/admin/contests/${contestId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const deleteContestAdmin = async (token, contestId) => {
+  const res = await fetch(`${BASE}/api/admin/contests/${contestId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
 export default {
   login,
   register,
@@ -281,4 +332,9 @@ export default {
   removeProblemFromContest,
   updateContest,
   deleteContest,
+  createAdminContest,
+  fetchAdminContests,
+  removeProblemFromContestAdmin,
+  updateContestAdmin,
+  deleteContestAdmin,
 };

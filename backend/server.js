@@ -10,6 +10,7 @@ import contestRoutes from './routes/contests.js';
 import profileRoutes from './routes/profile.js';
 import departmentRoutes from './routes/departments.js';
 import facultyContestRoutes from './routes/facultyContests.js';
+import adminContestRoutes from './routes/adminContests.js';
 
 const app = express();
 app.use(cors());
@@ -22,6 +23,7 @@ app.use('/api/contests', contestRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/faculty/contests', facultyContestRoutes)
+app.use('/api/admin/contests', adminContestRoutes)
 
 app.get('/', (req, res) => res.send({ ok: true }));
 

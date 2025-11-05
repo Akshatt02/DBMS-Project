@@ -4,7 +4,7 @@ import { registerFaculty, fetchDepartments } from '../api';
 import AuthContext from '../context/AuthContext';
 
 export default function FacultyRegister() {
-  const { user } = useContext(AuthContext);
+  const { user, setToken, setUser } = useContext(AuthContext);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -31,8 +31,11 @@ export default function FacultyRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await registerFaculty(form);
-      navigate('/contests'); // Redirecting to contests, not login
+      const res = await registerFaculty(form);
+      // Auto-login faculty after successful registration to match student flow
+      if (res?.token) setToken(res.token);
+      if (res?.user) setUser(res.user);
+      navigate('/contests');
     } catch (err) {
       setError(err.message || 'Registration failed');
     }

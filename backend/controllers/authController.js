@@ -19,14 +19,14 @@ export const register = async (req, res) => {
             return res.status(400).json({ message: 'Email already registered' });
         const rating = role === 'user' ? 1000 : null;
         const [result] = await pool.query(
-            `INSERT INTO users (name, email, password, role, department_id, batch)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-            [name, email, password, role, department_id, batch]
+            `INSERT INTO users (name, email, password, role, department_id, batch, rating)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [name, email, password, role, department_id, batch, rating]
         );
 
         const userId = result.insertId;
         const token = jwt.sign(
-            { id: userId, role, email },
+            { id: userId, role, email, department_id },
             JWT_SECRET,
             { expiresIn: '7d' }
         );

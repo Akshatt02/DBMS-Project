@@ -16,7 +16,7 @@ const getVerdictStyle = (verdict) => {
   if (v.includes('tle')) {
     return '!bg-yellow-100 !text-yellow-700'; // Yellow
   }
-  if (v.includes('pending') || v.includes('running')) {
+  if (v.includes('ce') || v.includes('running')) {
     return '!bg-blue-100 !text-blue-700'; // Blue
   }
   return 'badge'; // Default badge style from theme.css

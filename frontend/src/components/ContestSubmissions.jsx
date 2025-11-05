@@ -5,10 +5,10 @@ import api from '../api';
 const getVerdictStyle = (verdict) => {
   if (!verdict) return 'badge';
   const v = verdict.toLowerCase();
-  if (v.includes('accepted')) return '!bg-green-100 !text-green-700';
-  if (v.includes('wrong') || v.includes('error')) return '!bg-red-100 !text-red-700';
-  if (v.includes('time limit')) return '!bg-yellow-100 !text-yellow-700';
-  if (v.includes('pending') || v.includes('running')) return '!bg-blue-100 !text-blue-700';
+  if (v.includes('ac')) return '!bg-green-100 !text-green-700';
+  if (v.includes('wa') || v.includes('error')) return '!bg-red-100 !text-red-700';
+  if (v.includes('tle')) return '!bg-yellow-100 !text-yellow-700';
+  if (v.includes('ce') || v.includes('running')) return '!bg-blue-100 !text-blue-700';
   return 'badge';
 };
 

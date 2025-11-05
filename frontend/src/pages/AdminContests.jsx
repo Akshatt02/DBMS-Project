@@ -3,6 +3,18 @@ import api from '../api';
 import AuthContext from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
+// Helper to format date (copied from Contests.js for consistency)
+const formatDateTime = (dateString) => {
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  };
+  return new Date(dateString).toLocaleString(undefined, options);
+};
+
 export default function AdminContests() {
   const { token } = useContext(AuthContext);
   const [contests, setContests] = useState([]);
@@ -25,50 +37,71 @@ export default function AdminContests() {
     if (token) fetchAdminContests();
   }, [token]);
 
-  if (loading) return <p className="text-gray-400">Loading...</p>;
-  if (error) return <p className="text-red-400">{error}</p>;
+  // Styled loading state
+  if (loading) {
+    return (
+      <div className="card p-8 text-center muted">Loading...</div>
+    );
+  }
+
+  // Styled error state
+  if (error) {
+    return (
+      <div className="card p-6 bg-red-100 text-red-700 max-w-lg mx-auto text-center">
+        {error}
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-4 text-white">All Contests (Admin)</h2>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">All Contests (Admin)</h1>
 
       {contests.length === 0 ? (
-        <p className="text-gray-400">No contests found.</p>
+        // Styled empty state
+        <div className="card p-8 text-center muted">
+          No contests found in the system.
+        </div>
       ) : (
-        <ul className="space-y-3">
+        <div className="space-y-4">
           {contests.map((c) => (
-            <li
+            // Using the theme's 'card' class
+            <div
               key={c.id}
-              className="p-4 bg-gray-800 rounded-lg flex justify-between items-center"
+              className="card p-5 flex flex-col md:flex-row md:justify-between md:items-center"
             >
               <div>
-                <h3 className="text-lg font-medium text-white">{c.title}</h3>
-                <p className="text-sm text-gray-400">
-                  {new Date(c.start_time).toLocaleString()} →{' '}
-                  {new Date(c.end_time).toLocaleString()}
+                <h3 className="text-xl font-semibold">{c.title}</h3>
+                <p className="text-sm muted mt-1">
+                  {formatDateTime(c.start_time)} →{' '}
+                  {formatDateTime(c.end_time)}
                 </p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3 mt-4 md:mt-0">
+                {/* Styled "Edit" button */}
                 {new Date() <= new Date(c.end_time) ? (
                   <Link
                     to={`/admin/contest/${c.id}/edit`}
-                    className="text-blue-400 hover:underline"
+                    className="btn btn-ghost"
                   >
                     Edit
                   </Link>
                 ) : (
-                  <span className="text-gray-500">Edit (locked)</span>
+                  <span
+                    className="btn btn-ghost opacity-60 cursor-not-allowed"
+                    aria-disabled="true"
+                  >
+                    Edit (locked)
+                  </span>
                 )}
-                <Link
-                  to={`/contests/${c.id}`}
-                  className="text-green-400 hover:underline"
-                >
+                {/* Styled "View" button */}
+                <Link to={`/contests/${c.id}`} className="btn btn-primary">
                   View
                 </Link>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

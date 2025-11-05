@@ -4,6 +4,18 @@ import AuthContext from '../context/AuthContext';
 
 const VERDICTS = ['AC', 'WA', 'TLE', 'RE', 'CE'];
 
+// Helper to format date (copied from Contests.js for consistency)
+const formatDateTime = (dateString) => {
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  };
+  return new Date(dateString).toLocaleString(undefined, options);
+};
+
 export default function ContestProblems({ contestId, onSubmit, registered }) {
   const { token, user } = useContext(AuthContext);
   const [contest, setContest] = useState(null);
@@ -11,10 +23,11 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Main component error
   const [selected, setSelected] = useState({});
   const [busy, setBusy] = useState({});
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState(''); // Success message
+  const [submitError, setSubmitError] = useState(''); // Submission-specific error
 
   useEffect(() => {
     const load = async () => {
@@ -26,7 +39,7 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
         setFiltered(data.problems || []);
 
         const init = {};
-        (data.problems || []).forEach(p => (init[p.id] = VERDICTS[0]));
+        (data.problems || []).forEach((p) => (init[p.id] = VERDICTS[0]));
         setSelected(init);
       } catch (err) {
         setError(err?.message || 'Failed to load contest problems');
@@ -40,12 +53,27 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
   useEffect(() => {
     const s = search.trim().toLowerCase();
     if (!s) setFiltered(problems);
-    else setFiltered(problems.filter(p => p.title.toLowerCase().includes(s)));
+    else setFiltered(problems.filter((p) => p.title.toLowerCase().includes(s)));
   }, [search, problems]);
 
-  if (loading) return <div className="card">Loading problems...</div>;
-  if (error) return <div className="card text-red-500">{error}</div>;
-  if (!contest) return <div className="card">Contest not found</div>;
+  // Styled loading state
+  if (loading) {
+    return <div className="p-8 text-center muted">Loading problems...</div>;
+  }
+
+  // Styled error state
+  if (error) {
+    return (
+      <div className="p-6 bg-red-100 text-red-700 text-sm rounded-md">
+        {error}
+      </div>
+    );
+  }
+
+  // Styled not found state
+  if (!contest) {
+    return <div className="p-8 text-center muted">Contest not found</div>;
+  }
 
   const now = new Date();
   const start = new Date(contest.start_time);
@@ -54,42 +82,46 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
   const isPast = now > end;
   const canSubmit = isOngoing;
 
-  const handleSelect = (pid, v) => setSelected(prev => ({ ...prev, [pid]: v }));
+  const handleSelect = (pid, v) =>
+    setSelected((prev) => ({ ...prev, [pid]: v }));
 
   const submit = async (p) => {
-    if (!token) return setError('You must be logged in to submit');
-    if (!canSubmit) return setError('Submissions are allowed only while contest is running');
-    if (!registered) return setError('You must register for the contest to submit solutions');
+    if (!token) return setSubmitError('You must be logged in to submit');
+    if (!canSubmit)
+      return setSubmitError('Submissions are allowed only while contest is running');
+    if (!registered)
+      return setSubmitError('You must register for the contest to submit solutions');
 
     const verdict = selected[p.id] || VERDICTS[0];
-    setBusy(prev => ({ ...prev, [p.id]: true }));
+    setBusy((prev) => ({ ...prev, [p.id]: true }));
     setMsg('');
-    setError('');
+    setSubmitError('');
 
     try {
       await api.createSubmission(token, {
         contest_id: contestId,
         problem_id: p.id,
-        verdict
+        verdict,
       });
       if (typeof onSubmit === 'function') onSubmit();
       setMsg(`Submission saved: ${p.title} — ${verdict}`);
     } catch (err) {
       console.error(err);
-      setError(err?.message || 'Submission failed');
+      setSubmitError(err?.message || 'Submission failed');
     } finally {
-      setBusy(prev => ({ ...prev, [p.id]: false }));
-      setTimeout(() => setMsg(''), 5000);
+      setBusy((prev) => ({ ...prev, [p.id]: false }));
+      setTimeout(() => setMsg(''), 5000); // Clear success message
     }
   };
 
   return (
     <div className="space-y-4">
-      <div className="card">
+      {/* Header card - now part of the component, not the parent */}
+      <div className="card p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <h2 className="text-xl font-bold">Contest Problems</h2>
-          <div className="text-sm text-gray-500">
-            {start.toLocaleString()} → {end.toLocaleString()}
+          <div className="text-sm muted">
+            {formatDateTime(contest.start_time)} → {formatDateTime(contest.end_time)}
           </div>
         </div>
 
@@ -98,34 +130,56 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
           placeholder="🔍 Search by problem name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-3 w-full p-2 rounded border bg-gray-800 text-white"
+          className="form-input mt-4 w-full"
         />
 
+        {/* Styled Info/Warning Messages */}
         {!canSubmit && isPast && (
-          <div className="mt-2 text-sm text-gray-400">Contest finished — submissions closed.</div>
+          <div className="mt-3 p-3 text-sm bg-gray-100 text-gray-700 rounded-md">
+            Contest finished — submissions closed.
+          </div>
         )}
         {!canSubmit && !isPast && (
-          <div className="mt-2 text-sm text-gray-400">Contest not started yet.</div>
+          <div className="mt-3 p-3 text-sm bg-sky-100 text-sky-700 rounded-md">
+            Contest not started yet.
+          </div>
         )}
-
-        {/* Show registration hint when user is logged in but not registered */}
         {user && user.role === 'user' && !registered && (
-          <div className="mt-2 text-sm text-yellow-400">You are not registered for this contest. Please register from the contest header to submit solutions.</div>
+          <div className="mt-3 p-3 text-sm bg-yellow-100 text-yellow-700 rounded-md">
+            You are not registered for this contest. Please register from the
+            contest header to submit solutions.
+          </div>
         )}
 
-        {msg && <div className="mt-3 text-green-500">{msg}</div>}
-        {error && <div className="mt-3 text-red-500">{error}</div>}
+        {/* Styled Success/Error Messages */}
+        {msg && (
+          <div className="mt-3 p-3 rounded-md bg-green-100 text-green-700 text-sm">
+            {msg}
+          </div>
+        )}
+        {submitError && (
+          <div className="mt-3 p-3 rounded-md bg-red-100 text-red-700 text-sm">
+            {submitError}
+          </div>
+        )}
       </div>
 
-      {filtered.length === 0 && <div className="card">No problems found.</div>}
+      {filtered.length === 0 && (
+        <div className="card p-8 text-center muted">No problems found.</div>
+      )}
 
-      <div className="grid gap-3">
+      {/* Problem List */}
+      <div className="space-y-4">
         {filtered.map((p) => (
-          <div key={p.id} className="card p-4 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div
+            key={p.id}
+            className="card p-4 flex flex-col md:flex-row md:items-center md:justify-between"
+          >
             <div>
               <div className="font-semibold">{p.title}</div>
-              <div className="text-sm text-gray-400">
-                Difficulty: {p.difficulty} {p.tags ? `| Tags: ${p.tags}` : ''}
+              <div className="text-sm muted capitalize">
+                Difficulty: {p.difficulty}{' '}
+                {p.tags ? `| Tags: ${p.tags}` : ''}
               </div>
             </div>
 
@@ -134,9 +188,13 @@ export default function ContestProblems({ contestId, onSubmit, registered }) {
                 value={selected[p.id] ?? VERDICTS[0]}
                 onChange={(e) => handleSelect(p.id, e.target.value)}
                 disabled={!canSubmit || busy[p.id]}
-                className="p-2 rounded border bg-gray-900 text-white"
+                className="form-select" // Use styled select
               >
-                {VERDICTS.map(v => <option key={v} value={v}>{v}</option>)}
+                {VERDICTS.map((v) => (
+                  <option key={v} value={v} className="form-option">
+                    {v}
+                  </option>
+                ))}
               </select>
 
               <button

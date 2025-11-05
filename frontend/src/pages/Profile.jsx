@@ -3,6 +3,22 @@ import { useParams } from 'react-router-dom';
 import api from '../api';
 import AuthContext from '../context/AuthContext';
 
+// Helper component for the difficulty blocks
+const DifficultyStat = ({ label, attempted, solved, colorClass }) => (
+  <div
+    className={`p-4 rounded-lg flex-1 ${colorClass} bg-opacity-10 border ${colorClass} border-opacity-20`}
+  >
+    <div
+      className={`text-sm font-bold uppercase ${colorClass} ${colorClass === 'text-gray-500' ? '' : 'text-opacity-70'
+        }`}
+    >
+      {label}
+    </div>
+    <div className="text-2xl font-bold mt-1">{solved || 0}</div>
+    <div className="text-sm opacity-70">{attempted || 0} attempted</div>
+  </div>
+);
+
 export default function Profile() {
   const { token } = useContext(AuthContext);
   const { id } = useParams();
@@ -12,7 +28,9 @@ export default function Profile() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = id ? await api.fetchProfileById(token, id) : await api.fetchProfile(token);
+        const data = id
+          ? await api.fetchProfileById(token, id)
+          : await api.fetchProfile(token);
         setProfile(data);
       } catch (err) {
         setError(err?.message || 'Failed to load profile');
@@ -21,8 +39,25 @@ export default function Profile() {
     if (token) load();
   }, [token, id]);
 
-  if (error) return <div className="text-red-400">{error}</div>;
-  if (!profile) return <div>Loading...</div>;
+  // Styled error state
+  if (error) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="card p-6 bg-red-100 text-red-700 max-w-md w-full text-center">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  // Styled loading state
+  if (!profile) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center muted">
+        Loading profile...
+      </div>
+    );
+  }
 
   const { user, stats, weak_topics } = profile;
 
@@ -31,121 +66,193 @@ export default function Profile() {
   const contestsCount = profile.contests_count || 0;
   const contestHistory = profile.contest_history || [];
   // filter weak topics with >= 40% wrong rate
-  const weakFiltered = (weak_topics || []).filter(t => Number(t.wrong_percent) >= 40);
+  const weakFiltered = (weak_topics || []).filter(
+    (t) => Number(t.wrong_percent) >= 40
+  );
+
+  // Helper to find difficulty stats
+  const getDifficulty = (diff) => {
+    return (
+      difficultyCounts.find((r) => (r.difficulty || '').toLowerCase() === diff) || {
+        attempted: 0,
+        solved: 0,
+      }
+    );
+  };
+  const easyStats = getDifficulty('easy');
+  const mediumStats = getDifficulty('medium');
+  const hardStats = getDifficulty('hard');
 
   return (
     <div className="space-y-6">
-      <div className="card">
-        <h2 className="text-2xl font-bold">{user.name}</h2>
-        <p className="text-gray-400">
+      {/* Profile Header Card */}
+      <div className="card p-6">
+        <h2 className="text-3xl font-bold">{user.name}</h2>
+        <p className="muted text-lg">
           {user.department || 'General'} • Batch {user.batch || '-'}
         </p>
-        <div className="mt-2">
-          <span className="badge bg-yellow-400 text-black">
+        <div className="mt-3 flex gap-3">
+          {/* Cleaned up badge styles */}
+          <span className="badge !bg-yellow-100 !text-yellow-800 !font-bold !text-sm">
             Rating: {user.rating}
           </span>
-          <span className="ml-3 badge">
-            Role: {user.role}
-          </span>
+          {/* This uses the default .badge style from theme.css */}
+          <span className="badge !text-sm">{user.role}</span>
         </div>
       </div>
 
-      <div className="card">
-        <h3 className="text-xl mb-2 font-semibold">Submission Stats</h3>
-        <div>Total Submissions: {stats.total}</div>
-        <div>Accepted: {stats.ac}</div>
-        <div>Accuracy: {stats.ac_percent}%</div>
-      </div>
-
-      <div className="card">
-        <h3 className="text-xl mb-2 font-semibold">Difficulty Breakdown</h3>
-        <div className="flex gap-4">
-          {['easy','medium','hard'].map(d => {
-            const row = difficultyCounts.find(r => (r.difficulty || '').toLowerCase() === d) || { attempted: 0, solved: 0 };
-            return (
-              <div key={d} className="p-3 bg-base-200 rounded">
-                <div className="text-sm text-gray-400">{d.charAt(0).toUpperCase()+d.slice(1)}</div>
-                <div className="text-lg font-medium">{row.attempted || 0} attempted</div>
-                <div className="text-sm text-green-400">{row.solved || 0} solved</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 className="text-xl mb-3 font-semibold">Weak Topics</h3>
-        {weakFiltered.length === 0 ? (
-          <div className="text-green-400">Great going — keep practicing!</div>
-        ) : (
-          <>
-            <div className="text-sm text-yellow-300 mb-2">Focus on these tags to improve accuracy</div>
-            {weakFiltered.map((t, i) => (
-              <div key={i} className="flex justify-between border-b border-white/10 py-1">
-                <span>{t.name}</span>
-                <span className="text-red-400">{t.wrong_percent}% wrong</span>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      <div className="card">
-        <h3 className="text-xl mb-2 font-semibold">Tag-wise Problem Counts</h3>
-        {tagCounts.length === 0 ? (
-          <div className="text-gray-400">No tag data available</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b">
-                  <th className="py-2">Tag</th>
-                  <th>Attempted</th>
-                  <th>Solved</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tagCounts.map(t => (
-                  <tr key={t.name} className="hover:bg-gray-800/40">
-                    <td className="py-2">{t.name}</td>
-                    <td>{t.attempted}</td>
-                    <td>{t.solved}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="card flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Contests</h3>
-          <div className="text-sm text-gray-400">Contests given</div>
-          <div className="text-2xl font-bold">+{contestsCount}</div>
-        </div>
-        <div className="text-sm text-gray-400">Recent contests</div>
-      </div>
-
-      <div className="card">
-        <h3 className="text-xl mb-2 font-semibold">Contest History</h3>
-        {contestHistory.length === 0 ? (
-          <div className="text-gray-400">No contest history</div>
-        ) : (
+      {/* Grid for stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Submission Stats */}
+        <div className="card p-6">
+          <h3 className="text-xl mb-3 font-semibold">Submission Stats</h3>
           <div className="space-y-2">
-            {contestHistory.map(c => (
-              <div key={c.id} className="flex justify-between border-b border-white/10 py-2">
-                <div>
-                  <div className="font-medium">{c.title}</div>
-                  <div className="text-sm text-gray-400">{new Date(c.start_time).toLocaleDateString()}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-green-400">Solved: {c.solved_count}</div>
-                </div>
-              </div>
-            ))}
+            <div className="flex justify-between">
+              <span className="muted">Total Submissions:</span>
+              <span className="font-bold">{stats.total}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="muted">Accepted:</span>
+              <span className="font-bold text-green-600">{stats.ac}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="muted">Accuracy:</span>
+              <span className="font-bold text-teal-600">
+                {stats.ac_percent}%
+              </span>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Contests Count */}
+        <div className="card p-6 flex flex-col justify-center">
+          <h3 className="text-xl mb-3 font-semibold">Contests</h3>
+          <div className="text-5xl font-bold text-cyan-600">
+            {contestsCount}
+          </div>
+          <div className="muted">Contests given</div>
+        </div>
+
+        {/* Weak Topics */}
+        <div className="card p-6">
+          <h3 className="text-xl mb-3 font-semibold">Weak Topics</h3>
+          {weakFiltered.length === 0 ? (
+            <div className="text-green-600">
+              Great going — keep practicing!
+            </div>
+          ) : (
+            <>
+              <div className="text-sm text-yellow-600 mb-2">
+                Focus on these tags to improve accuracy
+              </div>
+              <div className="space-y-1">
+                {weakFiltered.map((t, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between border-b border-gray-100 py-1"
+                  >
+                    <span className="font-medium">{t.name}</span>
+                    <span className="text-red-600 font-medium">
+                      {t.wrong_percent}% wrong
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Difficulty Breakdown */}
+      <div className="card p-6">
+        <h3 className="text-xl mb-4 font-semibold">Difficulty Breakdown</h3>
+        <div className="flex flex-col md:flex-row gap-4">
+          <DifficultyStat
+            label="Easy"
+            attempted={easyStats.attempted}
+            solved={easyStats.solved}
+            colorClass="text-green-600"
+          />
+          <DifficultyStat
+            label="Medium"
+            attempted={mediumStats.attempted}
+            solved={mediumStats.solved}
+            colorClass="text-yellow-600"
+          />
+          <DifficultyStat
+            label="Hard"
+            attempted={hardStats.attempted}
+            solved={hardStats.solved}
+            colorClass="text-red-600"
+          />
+        </div>
+      </div>
+
+      {/* Tag & Contest History Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tag-wise Problem Counts */}
+        <div className="card p-6">
+          <h3 className="text-xl mb-3 font-semibold">Tag-wise Problem Counts</h3>
+          {tagCounts.length === 0 ? (
+            <div className="muted">No tag data available</div>
+          ) : (
+            <div className="overflow-x-auto max-h-96">
+              <table className="w-full text-left">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="border-b border-gray-200">
+                    <th className="py-2 px-2 font-semibold">Tag</th>
+                    <th className="py-2 px-2 font-semibold">Attempted</th>
+                    <th className="py-2 px-2 font-semibold">Solved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tagCounts.map((t) => (
+                    <tr
+                      key={t.name}
+                      className="border-b border-gray-100 hover:bg-sky-50"
+                    >
+                      <td className="py-3 px-2 font-medium">{t.name}</td>
+                      <td className="py-3 px-2">{t.attempted}</td>
+
+                      <td className="py-3 px-2 text-green-600 font-medium">
+                        {t.solved}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Contest History */}
+        <div className="card p-6">
+          <h3 className="text-xl mb-3 font-semibold">Contest History</h3>
+          {contestHistory.length === 0 ? (
+            <div className="muted">No contest history</div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {contestHistory.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex justify-between items-center border-b border-gray-100 py-3"
+                >
+                  <div>
+                    <div className="font-semibold">{c.title}</div>
+                    <div className="text-sm muted">
+                      {new Date(c.start_time).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-green-600 font-bold">
+                      Solved: {c.solved_count}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,31 @@ import { useParams, useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import api from '../api';
 
+/**
+ * A reusable modal component for confirmation dialogs.
+ * Replaces the native browser `confirm()`.
+ */
+const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="card p-6 max-w-sm w-full">
+        <h3 className="text-lg font-semibold mb-4">{message}</h3>
+        <div className="flex justify-end gap-3">
+          <button onClick={onCancel} className="btn btn-ghost">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="btn bg-red-600 text-white hover:bg-red-700"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function FacultyContestEdit() {
   const { id } = useParams();
   const { token } = useContext(AuthContext);
@@ -11,13 +36,27 @@ export default function FacultyContestEdit() {
   const [loading, setLoading] = useState(true);
   const [contest, setContest] = useState(null);
   const [problems, setProblems] = useState([]);
-  const [message, setMessage] = useState('');
+  
+  // Updated message state to hold text and type (success/error)
+  const [message, setMessage] = useState({ text: '', type: '' });
 
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
-  const [problemForm, setProblemForm] = useState({ title: '', statement: '', difficulty: 'easy', tags: '' });
+  const [problemForm, setProblemForm] = useState({
+    title: '',
+    statement: '',
+    difficulty: 'easy',
+    tags: '',
+  });
+
+  // Modal state
+  const [modal, setModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -27,11 +66,21 @@ export default function FacultyContestEdit() {
         setContest(res.contest);
         setProblems(res.problems || []);
         setTitle(res.contest.title || '');
-        setStartTime(res.contest.start_time ? res.contest.start_time.substring(0,16) : '');
-        setEndTime(res.contest.end_time ? res.contest.end_time.substring(0,16) : '');
+        // Format dates for datetime-local input
+        setStartTime(
+          res.contest.start_time
+            ? res.contest.start_time.substring(0, 16)
+            : ''
+        );
+        setEndTime(
+          res.contest.end_time ? res.contest.end_time.substring(0, 16) : ''
+        );
       } catch (err) {
         console.error(err);
-        setMessage(err.message || 'Failed to load contest');
+        setMessage({
+          text: err.message || 'Failed to load contest',
+          type: 'error',
+        });
       } finally {
         setLoading(false);
       }
@@ -39,46 +88,79 @@ export default function FacultyContestEdit() {
     if (token) load();
   }, [id, token]);
 
+  // Helper to show the modal
+  const showConfirmModal = (message, onConfirm) => {
+    setModal({
+      isOpen: true,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setModal({ isOpen: false, message: '', onConfirm: null });
+      },
+    });
+  };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
-    setMessage('');
+    setMessage({ text: '', type: '' });
     try {
-      await api.updateContest(token, id, { title, start_time: startTime, end_time: endTime });
-      setMessage('Contest updated');
+      await api.updateContest(token, id, {
+        title,
+        start_time: startTime,
+        end_time: endTime,
+      });
+      setMessage({ text: 'Contest updated successfully', type: 'success' });
     } catch (err) {
       console.error(err);
-      setMessage(err.message || 'Error updating contest');
+      setMessage({
+        text: err.message || 'Error updating contest',
+        type: 'error',
+      });
     }
   };
 
-  const handleDeleteContest = async () => {
-    if (!confirm('Delete this contest? This cannot be undone.')) return;
-    try {
-      await api.deleteContest(token, id);
-      navigate('/faculty/my-contests');
-    } catch (err) {
-      console.error(err);
-      setMessage(err.message || 'Error deleting contest');
-    }
+  const handleDeleteContest = () => {
+    showConfirmModal(
+      'Delete this contest? This cannot be undone.',
+      async () => {
+        try {
+          await api.deleteContest(token, id);
+          navigate('/faculty/my-contests');
+        } catch (err) {
+          console.error(err);
+          setMessage({
+            text: err.message || 'Error deleting contest',
+            type: 'error',
+          });
+        }
+      }
+    );
   };
 
-  const handleRemoveProblem = async (pId) => {
-    if (!confirm('Remove this problem from the contest?')) return;
-    try {
-      await api.removeProblemFromContest(token, id, pId);
-      setProblems(prev => prev.filter(p => p.id !== pId));
-      setMessage('Problem removed');
-    } catch (err) {
-      console.error(err);
-      setMessage(err.message || 'Error removing problem');
-    }
+  const handleRemoveProblem = (pId) => {
+    showConfirmModal(
+      'Remove this problem from the contest?',
+      async () => {
+        try {
+          await api.removeProblemFromContest(token, id, pId);
+          setProblems((prev) => prev.filter((p) => p.id !== pId));
+          setMessage({ text: 'Problem removed', type: 'success' });
+        } catch (err) {
+          console.error(err);
+          setMessage({
+            text: err.message || 'Error removing problem',
+            type: 'error',
+          });
+        }
+      }
+    );
   };
 
   const handleAddProblem = async (e) => {
     e.preventDefault();
-    setMessage('');
+    setMessage({ text: '', type: '' });
     try {
-      const tags = problemForm.tags.split(',').map(t => t.trim()).filter(Boolean);
+      const tags = problemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
       const probRes = await api.createProblem(token, {
         title: problemForm.title,
         statement: problemForm.statement,
@@ -86,84 +168,204 @@ export default function FacultyContestEdit() {
         tags,
       });
       await api.addProblemToContest(token, id, probRes.problemId);
-      // reload problems (simple append)
+      
+      // Reload problems to get the newly added one
       const refreshed = await api.fetchContestById(id, token);
       setProblems(refreshed.problems || []);
       setProblemForm({ title: '', statement: '', difficulty: 'easy', tags: '' });
-      setMessage('Problem added to contest');
+      setMessage({ text: 'Problem added to contest', type: 'success' });
     } catch (err) {
       console.error(err);
-      setMessage(err.message || 'Error adding problem');
+      setMessage({
+        text: err.message || 'Error adding problem',
+        type: 'error',
+      });
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  // Styled loading state
+  if (loading) {
+    return <div className="card p-8 text-center muted">Loading...</div>;
+  }
+
   const now = new Date();
-  const start = contest?.start_time ? new Date(contest.start_time) : null;
   const end = contest?.end_time ? new Date(contest.end_time) : null;
   const isPast = end ? now > end : false;
 
+  // Render the styled message
+  const renderMessage = () => {
+    if (!message.text) return null;
+    const isSuccess = message.type === 'success';
+    return (
+      <div
+        className={`mb-4 p-3 rounded-md ${
+          isSuccess
+            ? 'bg-green-100 text-green-700'
+            : 'bg-red-100 text-red-700'
+        } text-sm`}
+      >
+        {message.text}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {/* Render Modal */}
+      {modal.isOpen && (
+        <ConfirmationModal
+          message={modal.message}
+          onConfirm={modal.onConfirm}
+          onCancel={() => setModal({ isOpen: false, message: '', onConfirm: null })}
+        />
+      )}
+
       {isPast ? (
-        <div className="card p-6 bg-gray-800 rounded">
+        // "Contest Ended" View
+        <div className="card p-6">
           <h2 className="text-xl font-semibold mb-3">Contest #{id} (Ended)</h2>
-          {message && <div className="text-green-400 mb-3">{message}</div>}
-          <div className="text-gray-400 mb-4">This contest has ended. Editing is locked. You can still delete the contest.</div>
-          <button type="button" className="btn btn-danger" onClick={handleDeleteContest}>Delete contest</button>
+          {renderMessage()}
+          <div className="muted mb-4">
+            This contest has ended. Editing is locked. You can still delete the
+            contest.
+          </div>
+          <button
+            type="button"
+            className="btn bg-red-600 text-white hover:bg-red-700"
+            onClick={handleDeleteContest}
+          >
+            Delete contest
+          </button>
         </div>
       ) : (
+        // "Editable" View
         <>
-          <div className="card p-6 bg-gray-800 rounded">
+          {/* Edit Contest Details Card */}
+          <div className="card p-6">
             <h2 className="text-xl font-semibold mb-3">Edit Contest #{id}</h2>
-            {message && <div className="text-green-400 mb-3">{message}</div>}
-            <form onSubmit={handleUpdate} className="space-y-3">
-              <input className="input w-full" value={title} onChange={e => setTitle(e.target.value)} />
-              <div className="flex gap-2">
-                <input type="datetime-local" className="input flex-1" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                <input type="datetime-local" className="input flex-1" value={endTime} onChange={e => setEndTime(e.target.value)} />
+            {renderMessage()}
+            <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+              <input
+                placeholder="Contest Title"
+                className="form-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <div className="flex flex-col md:flex-row gap-4">
+                <input
+                  type="datetime-local"
+                  className="form-input flex-1"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+                <input
+                  type="datetime-local"
+                  className="form-input flex-1"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
               </div>
-              <div className="flex gap-2">
-                <button className="btn btn-primary" type="submit">Save changes</button>
-                <button type="button" className="btn btn-danger" onClick={handleDeleteContest}>Delete contest</button>
+              <div className="flex gap-3">
+                <button className="btn btn-primary" type="submit">
+                  Save changes
+                </button>
+                <button
+                  type="button"
+                  className="btn bg-red-600 text-white hover:bg-red-700"
+                  onClick={handleDeleteContest}
+                >
+                  Delete contest
+                </button>
               </div>
             </form>
           </div>
 
-          <div className="card p-6 bg-gray-800 rounded">
+          {/* Problems in Contest Card */}
+          <div className="card p-6">
             <h3 className="text-lg font-semibold mb-3">Problems in Contest</h3>
             {problems.length === 0 ? (
-              <p className="text-gray-400">No problems yet</p>
+              <p className="muted">No problems yet</p>
             ) : (
-              <ul className="space-y-2">
-                {problems.map(p => (
-                  <li key={p.id} className="flex justify-between items-center p-2 bg-gray-900 rounded">
+              <div className="space-y-3">
+                {problems.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex justify-between items-center p-4 bg-sky-50 border border-sky-100 rounded-lg"
+                  >
                     <div>
-                      <div className="font-medium text-white">{p.title}</div>
-                      <div className="text-sm text-gray-400">{p.difficulty}</div>
+                      <div className="font-semibold">{p.title}</div>
+                      <div className="text-sm muted capitalize">
+                        {p.difficulty}
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="btn btn-sm" onClick={() => navigate(`/problems/${p.id}`)}>View</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleRemoveProblem(p.id)}>Remove</button>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => navigate(`/problems/${p.id}`)}
+                      >
+                        View
+                      </button>
+                      <button
+                        className="btn bg-red-600 text-white hover:bg-red-700"
+                        onClick={() => handleRemoveProblem(p.id)}
+                      >
+                        Remove
+                      </button>
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 
-          <div className="card p-6 bg-gray-800 rounded">
-            <h3 className="text-lg font-semibold mb-3">Create & Add Problem</h3>
-            <form onSubmit={handleAddProblem} className="space-y-3">
-              <input className="input w-full" placeholder="Title" value={problemForm.title} onChange={e => setProblemForm({...problemForm, title: e.target.value})} required />
-              <textarea className="input w-full" placeholder="Statement" value={problemForm.statement} onChange={e => setProblemForm({...problemForm, statement: e.target.value})} required />
-              <select className="input w-full" value={problemForm.difficulty} onChange={e => setProblemForm({...problemForm, difficulty: e.target.value})}>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+          {/* Create & Add Problem Card */}
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-3">
+              Create & Add Problem
+            </h3>
+            <form onSubmit={handleAddProblem} className="flex flex-col gap-4">
+              <input
+                className="form-input"
+                placeholder="Title"
+                value={problemForm.title}
+                onChange={(e) =>
+                  setProblemForm({ ...problemForm, title: e.target.value })
+                }
+                required
+              />
+              <textarea
+                className="form-input"
+                placeholder="Statement"
+                value={problemForm.statement}
+                onChange={(e) =>
+                  setProblemForm({ ...problemForm, statement: e.target.value })
+                }
+                required
+              />
+              <select
+                className="form-select"
+                value={problemForm.difficulty}
+                onChange={(e) =>
+                  setProblemForm({
+                    ...problemForm,
+                    difficulty: e.target.value,
+                  })
+                }
+              >
+                <option value="easy" className="form-option">Easy</option>
+                <option value="medium" className="form-option">Medium</option>
+                <option value="hard" className="form-option">Hard</option>
               </select>
-              <input className="input w-full" placeholder="Tags (comma separated)" value={problemForm.tags} onChange={e => setProblemForm({...problemForm, tags: e.target.value})} required />
-              <button className="btn btn-secondary">Create & Add</button>
+              <input
+                className="form-input"
+                placeholder="Tags (comma separated, e.g., math,dp)"
+                value={problemForm.tags}
+                onChange={(e) =>
+                  setProblemForm({ ...problemForm, tags: e.target.value })
+                }
+                required
+              />
+              <button className="btn btn-primary">Create & Add</button>
             </form>
           </div>
         </>

@@ -32,58 +32,84 @@ export default function FacultyRegister() {
     e.preventDefault();
     try {
       await registerFaculty(form);
-      navigate('/contests');
+      navigate('/contests'); // Redirecting to contests, not login
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto card">
-      <h2 className="text-2xl font-bold mb-4 text-center">Faculty Registration</h2>
-      {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          name="name"
-          placeholder="Full Name"
-          className="input w-full"
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          className="input w-full"
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="input w-full"
-          onChange={handleChange}
-          required
-        />
-        <select
-          name="department_id"
-          className="input w-full"
-          value={form.department_id}
-          onChange={handleChange}
-          required
-        >
-          <option value="">Select Department</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        <button className="btn btn-primary w-full" type="submit">
-          Register
-        </button>
-      </form>
+    // Wrapper to center the form on the page
+    <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Using 'card' class from theme.css */}
+        <div className="card p-6 sm:p-8">
+          <h2 className="text-2xl font-bold text-center mb-6">
+            Faculty Registration
+          </h2>
+
+          {/* Styled error message */}
+          {error && (
+            <div className="mb-4 p-3 rounded-md bg-red-100 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Using gap for spacing */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Using new .form-input class */}
+            <input
+              name="name"
+              placeholder="Full Name"
+              className="form-input"
+              onChange={handleChange}
+              required
+            />
+            {/* Using new .form-input class */}
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              className="form-input"
+              onChange={handleChange}
+              required
+            />
+            {/* Using new .form-input class */}
+            <input
+              name="password"
+              type="password"
+              placeholder="Password"
+              className="form-input"
+              onChange={handleChange}
+              required
+            />
+            {/* Using new .form-select and .form-option classes */}
+            <select
+              name="department_id"
+              className="form-select"
+              value={form.department_id}
+              onChange={handleChange}
+              required
+            >
+              <option value="" disabled className="form-option">
+                Select Department
+              </option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id} className="form-option">
+                  {d.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Using new .btn-primary styles */}
+            <div className="mt-2">
+              <button className="btn btn-primary w-full" type="submit">
+                Register
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

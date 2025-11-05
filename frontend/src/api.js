@@ -18,6 +18,26 @@ export const login = async (email, password, role) => {
   return data;
 };
 
+export const fetchContestSummary = async (token, contestId) => {
+  const res = await fetch(`${BASE}/api/contests/${contestId}/summary`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
+export const updateParticipantRating = async (token, contestId, userId, rating_after) => {
+  const res = await fetch(`${BASE}/api/contests/${contestId}/participants/${userId}/rating`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ rating_after }),
+  });
+  const data = await json(res);
+  if (!res.ok) throw data;
+  return data;
+};
+
 export const register = async (payload) => {
   const res = await fetch(`${BASE}/api/auth/register`, {
     method: 'POST',
@@ -324,6 +344,8 @@ export default {
   fetchContestProblems,
   fetchContestById,
   fetchContestParticipants,
+  fetchContestSummary,
+  updateParticipantRating,
   registerForContest,
   fetchDepartmentUsers,
   createContest,

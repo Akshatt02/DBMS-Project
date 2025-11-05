@@ -4,15 +4,28 @@ import pool from '../config/db.js';
 /* GET /api/contests */
 export const getContests = async (req, res) => {
   try {
-    const { department_id } = req.user;
-    const [rows] = await pool.query(
-      `SELECT c.*, d.name AS department_name
-       FROM contests c
-       LEFT JOIN departments d ON c.department_id = d.id
-       WHERE c.department_id IS NULL OR c.department_id = ?
-       ORDER BY c.start_time DESC`,
-      [department_id]
-    );
+    const { role, department_id } = req.user;
+
+    let query = `
+      SELECT c.*, d.name AS department_name
+      FROM contests c
+      LEFT JOIN departments d ON c.department_id = d.id
+    `;
+    let params = [];
+
+    if (role !== 'admin') {
+      query += `
+        WHERE c.department_id IS NULL OR c.department_id = ?
+        ORDER BY c.start_time DESC
+      `;
+      params = [department_id];
+    } else {
+      query += `
+        ORDER BY c.start_time DESC
+      `;
+    }
+
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -203,12 +216,19 @@ export const getContestLeaderboard = async (req, res) => {
 export const getContestProblems = async (req, res) => {
   try {
     const contestId = req.params.id;
-    const userDept = req.user.department_id;
+    const { role, department_id: userDept } = req.user;
 
-    const [contestRows] = await pool.query(
-      `SELECT * FROM contests WHERE id = ? AND (department_id IS NULL OR department_id = ?)`,
-      [contestId, userDept]
-    );
+    let contestQuery, contestParams;
+
+    if (role === 'admin') {
+      contestQuery = `SELECT * FROM contests WHERE id = ?`;
+      contestParams = [contestId];
+    } else {
+      contestQuery = `SELECT * FROM contests WHERE id = ? AND (department_id IS NULL OR department_id = ?)`;
+      contestParams = [contestId, userDept];
+    }
+
+    const [contestRows] = await pool.query(contestQuery, contestParams);
 
     if (contestRows.length === 0)
       return res.status(404).json({ message: 'Contest not found or not accessible' });
@@ -216,8 +236,9 @@ export const getContestProblems = async (req, res) => {
     const contest = contestRows[0];
     const now = new Date();
 
-    if (now < new Date(contest.start_time))
+    if (role !== 'admin' && now < new Date(contest.start_time)) {
       return res.status(403).json({ message: 'Contest has not started yet' });
+    }
 
     const [problems] = await pool.query(
       `SELECT
@@ -277,6 +298,96 @@ export const getContestParticipants = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to fetch participants' });
+  }
+};
+
+// PUT /api/contests/:id/participants/:userId/rating
+export const updateParticipantRating = async (req, res) => {
+  try {
+    const contestId = req.params.id;
+    const userId = req.params.userId;
+    const { rating_after } = req.body;
+
+    if (typeof rating_after === 'undefined') {
+      return res.status(400).json({ message: 'rating_after is required' });
+    }
+
+    const [[contest]] = await pool.query('SELECT * FROM contests WHERE id = ?', [contestId]);
+    if (!contest) return res.status(404).json({ message: 'Contest not found' });
+
+    // Only admin or the contest creator can update ratings
+    if (req.user.role !== 'admin' && req.user.id !== contest.created_by) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    // Ensure participant exists
+    const [cpRows] = await pool.query(
+      'SELECT * FROM contest_participants WHERE contest_id = ? AND user_id = ?',
+      [contestId, userId]
+    );
+    if (!cpRows.length) return res.status(404).json({ message: 'Participant not found' });
+
+    // Do not allow changing rating_after once it's set
+    if (cpRows[0].rating_after !== null && typeof cpRows[0].rating_after !== 'undefined') {
+      return res.status(400).json({ message: 'Rating already set and cannot be changed' });
+    }
+
+    // Update contest_participants.rating_after
+    await pool.query(
+      'UPDATE contest_participants SET rating_after = ? WHERE contest_id = ? AND user_id = ?',
+      [rating_after, contestId, userId]
+    );
+
+    // Optionally update users.rating to reflect new rating
+    await pool.query('UPDATE users SET rating = ? WHERE id = ?', [rating_after, userId]);
+
+    const [[updatedCp]] = await pool.query(
+      `SELECT cp.user_id, u.name AS user_name, cp.rating_before, cp.rating_after
+       FROM contest_participants cp JOIN users u ON u.id = cp.user_id
+       WHERE cp.contest_id = ? AND cp.user_id = ?`,
+      [contestId, userId]
+    );
+
+    res.json({ participant: updatedCp });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to update participant rating' });
+  }
+};
+
+// GET /api/contests/:id/summary
+export const getContestSummary = async (req, res) => {
+  try {
+    const contestId = req.params.id;
+    const [[contest]] = await pool.query('SELECT * FROM contests WHERE id = ?', [contestId]);
+    if (!contest) return res.status(404).json({ message: 'Contest not found' });
+
+    const endTime = contest.end_time || new Date();
+
+    const sql = `
+      SELECT
+        p.id AS problem_id,
+        p.title AS problem_title,
+        COUNT(s.id) AS submissions,
+        SUM(s.verdict = 'AC') AS ac_count,
+        COUNT(DISTINCT CASE WHEN s.verdict = 'AC' THEN s.user_id END) AS unique_solvers
+      FROM contest_problems cp
+      JOIN problems p ON cp.problem_id = p.id
+      LEFT JOIN submissions s 
+        ON s.problem_id = p.id 
+        AND s.contest_id = ? 
+        AND s.created_at >= ? 
+        AND s.created_at <= ?
+      WHERE cp.contest_id = ?
+      GROUP BY p.id, p.title
+      ORDER BY p.id ASC
+    `;
+
+    const [rows] = await pool.query(sql, [contestId, contest.start_time, endTime, contestId]);
+    res.json({ summary: rows });
+  } catch (err) {
+    console.error('getContestSummary error:', err);
+    res.status(500).json({ message: 'Failed to fetch contest summary' });
   }
 };
 

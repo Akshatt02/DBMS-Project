@@ -1,4 +1,3 @@
-// src/pages/ContestDetail.jsx
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api';
@@ -6,6 +5,8 @@ import AuthContext from '../context/AuthContext';
 import ContestSubmissions from '../components/ContestSubmissions';
 import ContestLeaderboard from '../components/ContestLeaderboard';
 import ContestProblems from '../components/ContestProblems';
+import ContestSummary from '../components/ContestSummary';
+import RatingManager from '../components/RatingManager';
 
 export default function ContestDetail() {
   const { id } = useParams();
@@ -15,12 +16,10 @@ export default function ContestDetail() {
   const [tab, setTab] = useState('leaderboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
   const [registered, setRegistered] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-  // Load contest data
   useEffect(() => {
     const loadContest = async () => {
       try {
@@ -36,7 +35,6 @@ export default function ContestDetail() {
     if (token) loadContest();
   }, [id, token]);
 
-  // Load participants + registration state after contest loads
   useEffect(() => {
     const loadParticipants = async () => {
       if (!token || !contest) return;
@@ -76,8 +74,10 @@ export default function ContestDetail() {
 
   const isUpcoming = now < start;
   const isOngoing = now >= start && now <= end;
-  const isPast = now > end;
+  const isEnded = now > end;
+  const showTabs = !isUpcoming; // Only hide when upcoming
   const showRegisterButton = (isUpcoming || isOngoing) && user;
+  const canManageRatings = user && (user.role === 'admin' || user.id === contest.created_by);
 
   return (
     <div className="space-y-6">
@@ -91,41 +91,20 @@ export default function ContestDetail() {
           {start.toLocaleString()} → {end.toLocaleString()}
         </div>
 
-        {/* Tabs + Register Button */}
-        <div className="mt-4 flex flex-wrap gap-2 items-center">
-          <button
-            className={`btn ${tab === 'leaderboard' ? 'btn-active' : ''}`}
-            onClick={() => setTab('leaderboard')}
-          >
-            Leaderboard
-          </button>
-          <button
-            className={`btn ${tab === 'submissions' ? 'btn-active' : ''}`}
-            onClick={() => setTab('submissions')}
-          >
-            Submissions
-          </button>
-          <button
-            className={`btn ${tab === 'problems' ? 'btn-active' : ''}`}
-            onClick={() => setTab('problems')}
-          >
-            Problems
-          </button>
-
-          {showRegisterButton && (
-            registered ? (
-              <span className="badge badge-success">Registered</span>
-            ) : (
-              <button
-                className="btn btn-outline"
-                onClick={handleRegister}
-                disabled={loadingParticipants}
-              >
-                {loadingParticipants ? 'Please wait...' : 'Register for Contest'}
-              </button>
-            )
-          )}
-        </div>
+        {/* Register Button */}
+        {showRegisterButton && (
+          registered ? (
+            <span className="badge badge-success mt-3">Registered</span>
+          ) : (
+            <button
+              className="btn btn-outline mt-3"
+              onClick={handleRegister}
+              disabled={loadingParticipants}
+            >
+              {loadingParticipants ? 'Please wait...' : 'Register for Contest'}
+            </button>
+          )
+        )}
       </div>
 
       {/* Participants list */}
@@ -151,25 +130,66 @@ export default function ContestDetail() {
         )}
       </div>
 
-      {/* Tabs */}
-      {tab === 'leaderboard' && (
-        <ContestLeaderboard contest={contest} token={token} />
-      )}
-
-      {tab === 'submissions' && (
-        <ContestSubmissions contest={contest} token={token} />
-      )}
-
-      {tab === 'problems' && (
-        <div className="card">
-          {isUpcoming ? (
-            <div className="text-gray-500">
-              Contest hasn’t started yet. Problems will be visible once it begins.
-            </div>
-          ) : (
-            <ContestProblems contestId={id} registered={registered} />
-          )}
+      {/* Upcoming contest notice */}
+      {isUpcoming && (
+        <div className="card text-gray-400">
+          Contest hasn’t started yet. Tabs and problems will appear once it begins.
         </div>
+      )}
+
+      {/* Tabs + Content (visible when ongoing or ended) */}
+      {showTabs && (
+        <>
+          {/* Tabs */}
+          <div className="card flex flex-wrap gap-2 items-center">
+            {[
+              { key: 'leaderboard', label: 'Leaderboard' },
+              { key: 'submissions', label: 'Submissions' },
+              { key: 'problems', label: 'Problems' },
+              { key: 'summary', label: 'Summary' },
+              ...(canManageRatings ? [{ key: 'ratings', label: 'Ratings' }] : []),
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                className={`btn ${tab === key ? 'btn-active' : ''}`}
+                onClick={() => setTab(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          {tab === 'leaderboard' && (
+            <ContestLeaderboard contest={contest} token={token} />
+          )}
+
+          {tab === 'submissions' && (
+            <ContestSubmissions contest={contest} token={token} />
+          )}
+
+          {tab === 'problems' && (
+            <div className="card">
+              <ContestProblems contestId={id} registered={registered} />
+            </div>
+          )}
+
+          {tab === 'summary' && (
+            <ContestSummary contest={contest} token={token} />
+          )}
+
+          {tab === 'ratings' && canManageRatings && (
+            <RatingManager
+              contest={contest}
+              participants={participants}
+              token={token}
+              onUpdated={() =>
+                api.fetchContestParticipants(token, contest.id)
+                  .then((d) => setParticipants(d.participants || []))
+              }
+            />
+          )}
+        </>
       )}
     </div>
   );

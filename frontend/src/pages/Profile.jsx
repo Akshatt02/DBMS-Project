@@ -1,23 +1,25 @@
 import React, { useEffect, useState, useContext } from 'react';
+import { useParams } from 'react-router-dom';
 import api from '../api';
 import AuthContext from '../context/AuthContext';
 
 export default function Profile() {
   const { token } = useContext(AuthContext);
+  const { id } = useParams();
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await api.fetchProfile(token);
+        const data = id ? await api.fetchProfileById(token, id) : await api.fetchProfile(token);
         setProfile(data);
       } catch (err) {
         setError(err?.message || 'Failed to load profile');
       }
     };
     if (token) load();
-  }, [token]);
+  }, [token, id]);
 
   if (error) return <div className="text-red-400">{error}</div>;
   if (!profile) return <div>Loading...</div>;

@@ -107,6 +107,15 @@ export const fetchProfile = async (token) => {
   return data;
 };
 
+export const fetchProfileById = async (token, id) => {
+  const res = await fetch(`${BASE}/api/profile/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw data;
+  return data;
+};
+
 export const fetchContestSubmissions = async (token, contestId, params = {}) => {
   const q = new URLSearchParams(params).toString();
   const res = await fetch(`${BASE}/api/contests/${contestId}/submissions?${q}`, {
@@ -163,6 +172,16 @@ export const registerForContest = async (token, contestId) => {
   return data;
 };
 
+async function fetchDepartmentUsers(token, department) {
+  const res = await fetch(`${BASE}/api/departments/department/${department}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error('Failed to fetch department users');
+  return res.json();
+}
+
 export default {
   login,
   register,
@@ -174,10 +193,12 @@ export default {
   getMySubmissions,
   fetchContests,
   fetchProfile,
+  fetchProfileById,
   fetchContestSubmissions,
   fetchContestLeaderboard,
   fetchContestProblems,
   fetchContestById,
   fetchContestParticipants,
   registerForContest,
+  fetchDepartmentUsers,
 };

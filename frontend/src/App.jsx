@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import Landing from './pages/Landing';
 import FacultyLogin from './pages/FacultyLogin';
 import FacultyRegister from './pages/FacultyRegister';
+import FacultyAnalytics from './pages/FacultyAnalytics';
 import { AuthProvider } from './context/AuthContext';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/faculty/login" element={<FacultyLogin />} />
             <Route path="/faculty/register" element={<FacultyRegister />} />
+            <Route path="/faculty/analytics" element={<FacultyAnalytics />} />
 
             {/* Problems */}
             <Route path="/problems" element={<ProblemSet />} />
@@ -45,6 +47,7 @@ export default function App() {
 
             {/* Profile */}
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:id" element={<Profile />} />
 
             {/* Fallback */}
             <Route path="*" element={<div className="card">Page not found</div>} />

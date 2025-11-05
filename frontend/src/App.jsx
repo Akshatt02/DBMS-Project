@@ -19,6 +19,7 @@ import AdminContestCreate from './pages/AdminContestCreate';
 import AdminContestEdit from './pages/AdminContestEdit';
 import AdminAnalytics from './pages/AdminAnalytics';
 import FacultyMyContests from './pages/FacultyMyContests';
+import AdminContests from './pages/AdminContests';
 import { AuthProvider } from './context/AuthContext';
 
 export default function App() {
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/admin/create-contest" element={<AdminContestCreate />} />
             <Route path="/admin/contest/:id/edit" element={<AdminContestEdit />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/my-contests" element={<AdminContests />} />
 
             {/* Problems */}
             <Route path="/problems" element={<ProblemSet />} />

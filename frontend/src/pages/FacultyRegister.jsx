@@ -32,7 +32,7 @@ export default function FacultyRegister() {
     e.preventDefault();
     try {
       await registerFaculty(form);
-      navigate('/login');
+      navigate('/contests');
     } catch (err) {
       setError(err.message || 'Registration failed');
     }

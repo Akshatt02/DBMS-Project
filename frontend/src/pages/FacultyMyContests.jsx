@@ -46,6 +46,12 @@ export default function FacultyMyContests() {
               >
                 Edit
               </Link>
+              <Link
+                to={`/contests/${c.id}`}
+                className="text-green-400 hover:underline"
+              >
+                View
+              </Link>
             </li>
           ))}
         </ul>

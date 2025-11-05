@@ -16,6 +16,8 @@ export default function NavBar() {
               <Link to="/problems" className="muted hover:accent">Problems</Link>
               <Link to="/contests" className="muted hover:accent">Contests</Link>
               <Link to={user.role === 'admin' ? '/admin/analytics' : '/faculty/analytics'} className="muted hover:accent">Analytics</Link>
+              <Link to={user.role === 'admin' ? '/admin/create-contest' : '/faculty/create-contest'} className="muted hover:accent">Create Contest</Link>
+              <Link to={user.role === 'admin' ? '/admin/my-contests' : '/faculty/my-contests'} className="muted hover:accent">My Contests</Link>
               <div className="flex items-center gap-3">
                 <span className="badge">{user.name}</span>
                 <button onClick={logout} className="btn btn-ghost">Logout</button>
